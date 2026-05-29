@@ -1,0 +1,7 @@
+interface:
+  display_name: "今日计划生成器"
+  short_description: "从笔记未完成任务、旧日遗留事项和用户输入生成今日计划"
+  default_prompt: "Use $generate-daily-plan to turn unfinished note tasks, carry-over items, and new user input into a Markdown daily plan."
+
+policy:
+  allow_implicit_invocation: true
