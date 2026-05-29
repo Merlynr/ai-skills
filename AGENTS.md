@@ -1,0 +1,1 @@
+/root/.config/skillshare/.planning/codebase/AGENTS.md
