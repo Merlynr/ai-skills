@@ -1,0 +1,228 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-29",
+  "categories": {
+    "plan": {
+      "description": "规划阶段 - 需求分析、架构设计、任务拆分",
+      "skills": [
+        {
+          "name": "gsd-discuss-phase",
+          "description": "在规划前通过自适应提问收集阶段上下文",
+          "use_when": "开始新阶段前收集需求"
+        },
+        {
+          "name": "gsd-spec-phase",
+          "description": "通过模糊度评分澄清阶段交付内容",
+          "use_when": "需要明确阶段目标和交付物"
+        },
+        {
+          "name": "gsd-plan-phase",
+          "description": "创建带验证循环的详细阶段计划",
+          "use_when": "需要创建详细的工作计划"
+        },
+        {
+          "name": "gsd-explore",
+          "description": "通过苏格拉底式探索推进创意",
+          "use_when": "需要探索和验证想法"
+        },
+        {
+          "name": "gsd-mvp-phase",
+          "description": "将阶段规划为垂直 MVP 切片",
+          "use_when": "需要最小化范围快速验证"
+        },
+        {
+          "name": "gsd-map-codebase",
+          "description": "使用并行 mapper agent 分析代码库",
+          "use_when": "需要理解现有代码结构"
+        },
+        {
+          "name": "gsd-ingest-docs",
+          "description": "从现有文档引导创建 .planning/ 结构",
+          "use_when": "项目有现有文档需要整合"
+        }
+      ]
+    },
+    "implement": {
+      "description": "实现阶段 - 编码、测试、集成",
+      "skills": [
+        {
+          "name": "gsd-execute-phase",
+          "description": "以分波并行方式执行某阶段的全部计划",
+          "use_when": "执行已规划的任务"
+        },
+        {
+          "name": "gsd-fast",
+          "description": "内联执行琐碎任务",
+          "use_when": "简单的单文件更改"
+        },
+        {
+          "name": "gsd-capture",
+          "description": "捕获想法、任务、笔记和种子",
+          "use_when": "发现新需求或问题时记录"
+        },
+        {
+          "name": "commit-message",
+          "description": "生成中文 Conventional Commits 提交消息",
+          "use_when": "代码提交时"
+        },
+        {
+          "name": "gsd-add-tests",
+          "description": "根据 UAT 标准生成测试",
+          "use_when": "需要为功能添加测试"
+        },
+        {
+          "name": "gsd-docs-update",
+          "description": "生成或更新项目文档",
+          "use_when": "需要更新文档"
+        }
+      ]
+    },
+    "verify": {
+      "description": "验证阶段 - 代码审查、测试、安全审计",
+      "skills": [
+        {
+          "name": "gsd-code-review",
+          "description": "审查源码文件中的缺陷、安全问题",
+          "use_when": "代码审查"
+        },
+        {
+          "name": "gsd-audit-fix",
+          "description": "自主审计到修复流水线",
+          "use_when": "需要自动修复问题"
+        },
+        {
+          "name": "gsd-secure-phase",
+          "description": "核验已完成阶段的威胁缓解措施",
+          "use_when": "安全审计"
+        },
+        {
+          "name": "gsd-validate-phase",
+          "description": "审计并补齐验证缺口",
+          "use_when": "验证覆盖率"
+        },
+        {
+          "name": "gsd-verify-work",
+          "description": "通过对话式 UAT 验证功能",
+          "use_when": "用户验收测试"
+        },
+        {
+          "name": "gsd-ui-review",
+          "description": "对前端代码执行视觉审计",
+          "use_when": "UI/UX 审查"
+        }
+      ]
+    },
+    "debug": {
+      "description": "调试阶段 - 问题诊断、修复",
+      "skills": [
+        {
+          "name": "gsd-debug",
+          "description": "通过持久化状态进行系统化调试",
+          "use_when": "需要调试复杂问题"
+        },
+        {
+          "name": "gsd-forensics",
+          "description": "对失败的工作流进行事后取证",
+          "use_when": "工作流失败需要诊断"
+        },
+        {
+          "name": "gsd-health",
+          "description": "诊断 planning 目录健康状况",
+          "use_when": "项目结构有问题"
+        }
+      ]
+    },
+    "manage": {
+      "description": "管理阶段 - 项目管理、里程碑",
+      "skills": [
+        {
+          "name": "gsd-progress",
+          "description": "检查进度、推进工作流",
+          "use_when": "需要查看项目状态"
+        },
+        {
+          "name": "gsd-manager",
+          "description": "交互式管理多个阶段",
+          "use_when": "管理复杂项目"
+        },
+        {
+          "name": "gsd-milestone-summary",
+          "description": "生成项目总结",
+          "use_when": "里程碑完成时"
+        },
+        {
+          "name": "gsd-complete-milestone",
+          "description": "归档里程碑并准备下一版本",
+          "use_when": "里程碑完成"
+        },
+        {
+          "name": "gsd-ship",
+          "description": "创建 PR 并准备合并",
+          "use_when": "准备发布"
+        }
+      ]
+    },
+    "memory": {
+      "description": "记忆管理 - 知识库、工作记忆",
+      "skills": [
+        {
+          "name": "distill-memory",
+          "description": "捕获突破性时刻和有价值的洞察",
+          "use_when": "发现重要决策或洞察"
+        },
+        {
+          "name": "search-memory",
+          "description": "搜索个人知识库",
+          "use_when": "需要查找历史信息"
+        },
+        {
+          "name": "read-working-memory",
+          "description": "读取每日工作记忆简报",
+          "use_when": "会话开始时"
+        },
+        {
+          "name": "save-handoff",
+          "description": "保存简洁的交接摘要",
+          "use_when": "需要保存进度"
+        }
+      ]
+    }
+  },
+  "task_patterns": {
+    "前端开发": {
+      "keywords": ["ui", "前端", "界面", "css", "react", "vue", "组件"],
+      "recommended_skills": ["gsd-ui-phase", "gsd-ui-review", "gsd-sketch"],
+      "category": "visual-engineering"
+    },
+    "后端开发": {
+      "keywords": ["api", "后端", "数据库", "server", "服务", "接口"],
+      "recommended_skills": ["gsd-code-review", "gsd-add-tests"],
+      "category": "unspecified-high"
+    },
+    "架构设计": {
+      "keywords": ["架构", "设计", "重构", "architecture", "design"],
+      "recommended_skills": ["gsd-map-codebase", "gsd-explore", "gsd-graphify"],
+      "category": "ultrabrain"
+    },
+    "调试修复": {
+      "keywords": ["调试", "bug", "错误", "修复", "fix", "debug"],
+      "recommended_skills": ["gsd-debug", "gsd-forensics"],
+      "category": "deep"
+    },
+    "文档编写": {
+      "keywords": ["文档", "doc", "readme", "说明"],
+      "recommended_skills": ["gsd-docs-update", "gsd-ingest-docs"],
+      "category": "writing"
+    },
+    "测试验证": {
+      "keywords": ["测试", "test", "验证", "verify"],
+      "recommended_skills": ["gsd-add-tests", "gsd-verify-work", "gsd-validate-phase"],
+      "category": "deep"
+    },
+    "项目管理": {
+      "keywords": ["项目", "milestone", "里程碑", "进度"],
+      "recommended_skills": ["gsd-progress", "gsd-manager", "gsd-milestone-summary"],
+      "category": "unspecified-low"
+    }
+  }
+}
