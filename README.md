@@ -14,7 +14,7 @@ skillshare check --all         # 检查更新
 
 ```
 ~/.config/skillshare/
-├── skills/              # 78 个 skills（已翻译为中文描述）
+├── skills/              # 63+ skills（含 GSD、自制学习系列等）
 ├── agents/              # 自定义 agents（待扩展）
 ├── config.yaml          # 同步配置
 ├── UPGRADE-GUIDE.md     # 升级指南（含 cymbal/gsd/rtk/nmem）
@@ -55,8 +55,15 @@ skillshare check --all         # 检查更新
 - `search-memory` - 搜索知识库
 - `status` - 检查连接状态
 
+### 自制学习系列 - 3 个
+- `generate-daily-plan` - Obsidian 今日计划生成器（全局）
+- `gaoruan-study-session` - 高软/系统架构师每日学习会话（错题、截图、nmem 简报）
+- `cpp-rust-study-session` - C++/Rust 学习会话（答疑笔记、计划同步）
+
+> 后两个 skill 源自在 Obsidian 笔记库 `f:\note\.cursor\skills\` 的项目级 skill；纳入中央仓库后可通过 `skillshare sync` 分发到各工具的全局 skills 目录。在 `f:\note` 工作区内仍保留项目级副本，Cursor 打开该工作区时会自动加载。
+
 ### 其他
-- `commit-message` - 生成中文 commit 消息
+- `commit-message` - 生成中文 commit 消息（待纳入）
 
 ## 升级指南
 

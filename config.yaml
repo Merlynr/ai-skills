@@ -1,22 +1,22 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/config.schema.json
 sources:
-  skills: /root/.config/skillshare/skills
-  agents: /root/.config/skillshare/agents
+  skills: C:/Users/101202106068/AppData/Roaming/skillshare/skills
+  agents: C:/Users/101202106068/AppData/Roaming/skillshare/agents
 mode: merge
 targets:
   agents:
     skills:
-      path: /root/.agents/skills
+      path: C:/Users/101202106068/.agents/skills
   codex:
     skills:
-      path: /root/.codex/skills
+      path: C:/Users/101202106068/.codex/skills
   cursor:
     skills:
-      path: /root/.cursor/skills
+      path: C:/Users/101202106068/.cursor/skills
       mode: copy
   opencode:
     skills:
-      path: /root/.config/opencode/skills
+      path: C:/Users/101202106068/.config/opencode/skills
 ignore:
   - '**/.DS_Store'
   - '**/.git/**'
