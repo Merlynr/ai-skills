@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/config.schema.json
+# Linux 配置模板 — 复制为 config.yaml 后使用：
+#   cp config.linux.yaml config.yaml
+sources:
+  skills: /root/.config/skillshare/skills
+  agents: /root/.config/skillshare/agents
+mode: merge
+targets:
+  agents:
+    skills:
+      path: /root/.agents/skills
+  codex:
+    skills:
+      path: /root/.codex/skills
+  cursor:
+    skills:
+      path: /root/.cursor/skills
+      mode: copy
+  opencode:
+    skills:
+      path: /root/.config/opencode/skills
+ignore:
+  - '**/.DS_Store'
+  - '**/.git/**'
+audit:
+  block_threshold: CRITICAL

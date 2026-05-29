@@ -13,12 +13,36 @@ skillshare check --all         # 检查更新
 ## 仓库结构
 
 ```
-~/.config/skillshare/
+~/.config/skillshare/          # Linux
+%AppData%\skillshare\          # Windows
 ├── skills/              # 63+ skills（含 GSD、自制学习系列等）
 ├── agents/              # 自定义 agents（待扩展）
-├── config.yaml          # 同步配置
+├── config.linux.yaml    # Linux 配置模板
+├── config.windows.yaml  # Windows 配置模板
+├── config.yaml          # 本机激活配置（gitignore，由 setup 脚本生成）
+├── setup-config.sh      # Linux: cp config.linux.yaml → config.yaml
+├── setup-config.ps1     # Windows: 同上
 ├── UPGRADE-GUIDE.md     # 升级指南（含 cymbal/gsd/rtk/nmem）
 └── README.md            # 本文件
+```
+
+### 跨平台配置
+
+仓库内**不直接提交** `config.yaml`，各平台使用模板：
+
+| 平台 | 模板 | 激活方式 |
+|------|------|----------|
+| Linux | `config.linux.yaml` | `./setup-config.sh` |
+| Windows | `config.windows.yaml` | `.\setup-config.ps1` |
+
+也可设置环境变量指向模板，无需复制：
+
+```bash
+# Linux
+export SKILLSHARE_CONFIG=~/.config/skillshare/config.linux.yaml
+
+# Windows PowerShell
+$env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 ```
 
 ## 工具链概览
