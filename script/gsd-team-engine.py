@@ -257,15 +257,160 @@ class DynamicSkillLoader:
         return []
 
 
+class NmemIntegration:
+    """nmem 集成 - 同步任务结果到 Nowledge Mem"""
+    
+    def __init__(self):
+        self.enabled = self._check_nmem()
+    
+    def _check_nmem(self) -> bool:
+        """检查 nmem 是否可用"""
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["nmem", "--json", "status"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                status = json.loads(result.stdout)
+                return status.get("status") == "ok"
+        except Exception:
+            pass
+        return False
+    
+    def create_task_thread(self, task: str, config: Dict, result: str, 
+                          learnings: str = None) -> Optional[str]:
+        """创建任务线程到 nmem"""
+        if not self.enabled:
+            return None
+        
+        try:
+            import subprocess
+            
+            # 构建线程内容
+            content = self._build_thread_content(task, config, result, learnings)
+            
+            # 创建线程
+            title = f"Team Task: {task[:50]}"
+            cmd = [
+                "nmem", "t", "create",
+                "-t", title,
+                "-c", content,
+                "-s", "gsd-team"
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                # 解析返回的 thread ID
+                try:
+                    output = json.loads(result.stdout)
+                    return output.get("id")
+                except json.JSONDecodeError:
+                    return result.stdout.strip()
+            
+            return None
+        except Exception as e:
+            print(f"警告: nmem 线程创建失败: {e}")
+            return None
+    
+    def save_memory(self, title: str, content: str, 
+                   memory_type: str = "learning",
+                   importance: float = 0.7,
+                   labels: List[str] = None) -> Optional[str]:
+        """保存记忆到 nmem"""
+        if not self.enabled:
+            return None
+        
+        try:
+            import subprocess
+            
+            cmd = [
+                "nmem", "m", "add",
+                content,
+                "-t", title,
+                "--unit-type", memory_type,
+                "-i", str(importance),
+                "-s", "gsd-team"
+            ]
+            
+            if labels:
+                for label in labels:
+                    cmd.extend(["-l", label])
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                try:
+                    output = json.loads(result.stdout)
+                    return output.get("id")
+                except json.JSONDecodeError:
+                    return "saved"
+            
+            return None
+        except Exception as e:
+            print(f"警告: nmem 记忆保存失败: {e}")
+            return None
+    
+    def distill_thread(self, thread_id: str) -> bool:
+        """将线程提炼为记忆"""
+        if not self.enabled or not thread_id:
+            return False
+        
+        try:
+            import subprocess
+            
+            cmd = ["nmem", "t", "distill", thread_id]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            return result.returncode == 0
+        except Exception:
+            return False
+    
+    def _build_thread_content(self, task: str, config: Dict, 
+                             result: str, learnings: str = None) -> str:
+        """构建线程内容"""
+        lines = [
+            f"## 任务: {task}",
+            f"",
+            f"**结果**: {result}",
+            f"**时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"",
+            "## 团队配置",
+            f"- 引擎: {config.get('engine', 'unknown')}",
+            f"- 成员数: {len(config.get('members', []))}",
+            f"- 主要意图: {config.get('intent_analysis', {}).get('primary_skill', 'N/A')}",
+            f"",
+            "## 使用的 Skills"
+        ]
+        
+        for member in config.get("members", []):
+            skills = ", ".join(member.get("skills", [])[:3])
+            lines.append(f"- {member['role']}: {skills}")
+        
+        if learnings:
+            lines.extend([
+                "",
+                "## 学习记录",
+                learnings
+            ])
+        
+        return "\n".join(lines)
+
+
 class FeedbackLoop:
     """反馈循环系统"""
     
     def __init__(self):
         self.learnings_dir = LEARNINGS_DIR
         self.learnings_dir.mkdir(parents=True, exist_ok=True)
+        self.nmem = NmemIntegration()
     
     def record_execution(self, task: str, skills_used: List[str], 
-                        result: str, learnings: str = None):
+                        result: str, learnings: str = None,
+                        config: Dict = None) -> Dict:
         """记录执行结果"""
         record = {
             "timestamp": datetime.now().isoformat(),
@@ -286,7 +431,34 @@ class FeedbackLoop:
         if result == "success" and learnings:
             self._append_to_skill(skills_used, learnings)
         
-        return str(filepath)
+        # 同步到 nmem
+        nmem_thread_id = None
+        nmem_memory_id = None
+        
+        if self.nmem.enabled and config:
+            # 创建线程
+            nmem_thread_id = self.nmem.create_task_thread(
+                task, config, result, learnings
+            )
+            
+            # 如果成功且有学习内容，提炼为记忆
+            if nmem_thread_id and result == "success" and learnings:
+                self.nmem.distill_thread(nmem_thread_id)
+            
+            # 保存重要决策为记忆
+            if learnings and result == "success":
+                nmem_memory_id = self.nmem.save_memory(
+                    title=f"Task: {task[:50]}",
+                    content=learnings,
+                    memory_type="learning",
+                    importance=0.8,
+                    labels=["team-task", "success"]
+                )
+        
+        record["nmem_thread_id"] = nmem_thread_id
+        record["nmem_memory_id"] = nmem_memory_id
+        
+        return record
     
     def _append_to_skill(self, skills: List[str], learning: str):
         """追加学习记录到 skill 文件"""
@@ -472,11 +644,12 @@ class TeamEngine:
         for member in config.get("members", []):
             skills_used.extend(member.get("skills", []))
         
-        self.feedback_loop.record_execution(
+        return self.feedback_loop.record_execution(
             task=config["task"],
             skills_used=list(set(skills_used)),
             result=result,
-            learnings=learnings
+            learnings=learnings,
+            config=config
         )
     
     def print_analysis(self, analysis: Dict):
@@ -521,6 +694,7 @@ def main():
     parser.add_argument("--name", "-n", help="团队名称")
     parser.add_argument("--output", "-o", help="输出文件路径")
     parser.add_argument("--commands", "-c", action="store_true", help="生成 OpenCode 命令")
+    parser.add_argument("--sync-nmem", action="store_true", help="同步到 nmem")
     
     args = parser.parse_args()
     
@@ -542,13 +716,44 @@ def main():
             print("错误: --learn 模式需要 --result 参数")
             sys.exit(1)
         
-        filepath = engine.feedback_loop.record_execution(
+        # 生成配置（用于 nmem 同步）
+        config = engine.generate_team(args.task, args.name)
+        
+        result = engine.feedback_loop.record_execution(
             task=args.task,
             skills_used=[],
             result=args.result,
-            learnings=args.learnings
+            learnings=args.learnings,
+            config=config
         )
-        print(f"学习记录已保存: {filepath}")
+        print(f"学习记录已保存: {result.get('timestamp')}")
+        if result.get('nmem_thread_id'):
+            print(f"nmem 线程 ID: {result['nmem_thread_id']}")
+        if result.get('nmem_memory_id'):
+            print(f"nmem 记忆 ID: {result['nmem_memory_id']}")
+        return
+    
+    # nmem 同步模式
+    if args.sync_nmem:
+        nmem = NmemIntegration()
+        if not nmem.enabled:
+            print("错误: nmem 未启用或不可用")
+            sys.exit(1)
+        
+        # 生成配置
+        config = engine.generate_team(args.task, args.name)
+        
+        # 同步到 nmem
+        thread_id = nmem.create_task_thread(
+            args.task, config, "pending", "任务已创建，等待执行"
+        )
+        
+        if thread_id:
+            print(f"✓ 已同步到 nmem")
+            print(f"  线程 ID: {thread_id}")
+            print(f"  标题: Team Task: {args.task[:50]}")
+        else:
+            print("✗ 同步到 nmem 失败")
         return
     
     # 生成团队配置
