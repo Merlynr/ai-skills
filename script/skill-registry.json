@@ -162,6 +162,16 @@
         }
       ]
     },
+    "stack": {
+      "description": "个人工作流栈 - GSD 更新安全层，不修改 GSD 本体",
+      "skills": [
+        {
+          "name": "merlynr-dev-stack",
+          "description": "Merlynr 个人 AI 开发工作流：证据优先、任务分级、GSD/nmem/Cymbal 路由",
+          "use_when": "非琐碎开发任务开始时；工作流/分工/写代码前"
+        }
+      ]
+    },
     "memory": {
       "description": "记忆管理 - 知识库、工作记忆",
       "skills": [
@@ -222,6 +232,11 @@
     "项目管理": {
       "keywords": ["项目", "milestone", "里程碑", "进度"],
       "recommended_skills": ["gsd-progress", "gsd-manager", "gsd-milestone-summary"],
+      "category": "unspecified-low"
+    },
+    "工作流启动": {
+      "keywords": ["工作流", "dev stack", "开发栈", "怎么分工", "写代码前", "开始开发"],
+      "recommended_skills": ["merlynr-dev-stack", "read-working-memory", "gsd-do"],
       "category": "unspecified-low"
     }
   }
