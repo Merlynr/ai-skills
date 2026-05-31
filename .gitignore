@@ -5,3 +5,6 @@ config.yaml
 logs/
 backups/
 version-check.json
+
+# nmem 简报草稿（应写入 Nowledge Mem，不进 skill 仓库）
+skills/**/nmem-briefing-*.md
