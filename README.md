@@ -10,55 +10,133 @@ skillshare sync --all          # 同步所有 skills
 skillshare check --all         # 检查更新
 ```
 
-## 一键部署
+## 前置要求
+
+| 依赖 | 用途 | Linux/macOS 安装 | Windows 安装 |
+|------|------|------------------|--------------|
+| **Git** | 克隆仓库 | `apt install git` / `brew install git` | [git-scm.com](https://git-scm.com) |
+| **Node.js** | 安装 skillshare CLI | [nodejs.org](https://nodejs.org) | [nodejs.org](https://nodejs.org) |
+| **Python** | 运行脚本（可选） | `apt install python3` / `brew install python3` | [python.org](https://python.org) |
+
+## 安装部署
 
 ### Linux / macOS
 
-```bash
-# 一键部署
-curl -fsSL https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.sh | bash
+#### 方式一：一键部署（推荐）
 
-# 或者手动部署
+```bash
+curl -fsSL https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.sh | bash
+```
+
+#### 方式二：手动部署
+
+```bash
+# 1. 克隆仓库
 git clone https://github.com/Merlynr/ai-skills.git ~/.config/skillshare
+
+# 2. 进入目录
 cd ~/.config/skillshare
+
+# 3. 添加执行权限
 chmod +x deploy.sh
+
+# 4. 运行部署脚本
 ./deploy.sh
 ```
 
+#### 方式三：仅激活配置（已有仓库）
+
+```bash
+cd ~/.config/skillshare
+chmod +x setup-config.sh
+./setup-config.sh
+```
+
+---
+
 ### Windows
 
-```powershell
-# 一键部署
-irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex
+#### 方式一：一键部署（推荐）
 
-# 或者手动部署
+打开 **PowerShell**，运行：
+
+```powershell
+irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex
+```
+
+#### 方式二：手动部署
+
+```powershell
+# 1. 克隆仓库
 git clone https://github.com/Merlynr/ai-skills.git "$env:APPDATA\skillshare"
+
+# 2. 进入目录
 cd "$env:APPDATA\skillshare"
+
+# 3. 运行部署脚本
 .\deploy.ps1
 ```
 
+#### 方式三：仅激活配置（已有仓库）
+
+```powershell
+cd "$env:APPDATA\skillshare"
+.\setup-config.ps1
+```
+
+---
+
 ### 部署后配置
 
-1. **修改 Windows 用户名**（如需要）
-   ```yaml
-   # 编辑 config.yaml
-   sources:
-     skills: C:/Users/你的用户名/AppData/Roaming/skillshare/skills
-   ```
+#### 1. 安装 skillshare CLI
 
-2. **安装依赖**
-   ```bash
-   # skillshare CLI
-   npm install -g skillshare
-   
-   # nmem（可选）
-   pip install nowledge-mem
-   ```
+```bash
+npm install -g skillshare
+```
 
-3. **同步 skills**
-   ```bash
-   skillshare sync --all
-   ```
+#### 2. 安装 nmem（可选，用于记忆管理）
+
+```bash
+pip install nowledge-mem
+```
+
+#### 3. 修改 Windows 用户名
+
+如果 Windows 用户名不是默认值，需要编辑 `config.yaml`：
+
+```yaml
+sources:
+  skills: C:/Users/你的用户名/AppData/Roaming/skillshare/skills
+  agents: C:/Users/你的用户名/AppData/Roaming/skillshare/agents
+
+targets:
+  agents:
+    skills:
+      path: C:/Users/你的用户名/.agents/skills
+  codex:
+    skills:
+      path: C:/Users/你的用户名/.codex/skills
+  cursor:
+    skills:
+      path: C:/Users/你的用户名/.cursor/skills
+  opencode:
+    skills:
+      path: C:/Users/你的用户名/.config/opencode/skills
+```
+
+#### 4. 同步 skills
+
+```bash
+skillshare sync --all
+```
+
+#### 5. 验证部署
+
+```bash
+skillshare status              # 查看同步状态
+skillshare doctor              # 运行诊断
+skillshare list                # 列出所有 skills
+```
 
 ## 仓库结构
 
@@ -193,4 +271,4 @@ skillshare log                 # 查看操作日志
 
 ---
 
-*最后更新：2026-05-29*
+*最后更新：2026-06-01*
