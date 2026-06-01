@@ -1,6 +1,10 @@
 ---
 name: cpp-rust-study-session
 description: Runs C++ or Rust study sessions in the Obsidian vault—session open, Q&A with optional contrast notes, detailed Q&A notes on request, plan sync, Dataview-safe markdown. Use when the user mentions C++学习、Rust学习、studycpp、今日C++/Rust、疑难点、第N章学完、开启/完成今天 C++ 或 Rust 学习计划。
+tags: [study, programming, cpp, rust, 学习, 编程]
+triggers: ["C++", "Rust", "学习", "编程", "答疑", "studycpp", "疑难点"]
+tool_chain: ["gsd-progress", "gsd-capture"]
+context_injection: true
 ---
 
 # C++ / Rust 学习会话
@@ -68,7 +72,48 @@ description: Runs C++ or Rust study sessions in the Obsidian vault—session ope
 2. 结构：**仅 Q1/Q2/…**，每条含用户问题原文（可略压缩）+ **完整解答**（分节、表格、代码块均可）。
 3. 文末简短 **进度备忘**（章节 ✅/⏳）即可，不写整章要点除非用户明确要求。
 4. 同步总计划勾选、日计划 `Review`/`Carry-over`。
-5. 可选 `memory_add`（labels: `cpp` 或 `rust`, `learning-plan`, `study-progress`）。
+5. 执行 **D. 写入 Nowledge Mem 简报**（用户未说「不要 nmem」时默认执行）。
+
+### D. 写入 Nowledge Mem 简报
+
+从当日学习笔记提炼内容，写入 nmem。结构模板：[nmem-briefing-template.md](nmem-briefing-template.md)。
+
+#### 简报字段
+
+| 区块 | 来源 |
+| --- | --- |
+| 学习内容 | 今日学习的章节/Day |
+| 答疑记录 | Q&A 条目数、主要主题 |
+| 疑难点 | 用户提出的疑难点 |
+| 对比学习 | C++ ↔ Rust 对比（如有） |
+| 进度 | 当前 Day 完成状态 |
+| 关联 | 学习笔记路径 |
+
+#### 写入步骤
+
+1. **生成简报内容**
+   - 从学习笔记提取 Q&A 摘要
+   - 记录主要疑难点和解答
+   - 标注对比学习内容（如有）
+
+2. **写入 nmem**
+   ```bash
+   nmem m add "简报内容" \
+     -t "C++/Rust 学习简报 YYYY-MM-DD" \
+     --unit-type learning \
+     -i 0.7 \
+     -l cpp,rust,study \
+     -s gsd-team
+   ```
+
+3. **验证**
+   ```bash
+   nmem m show cpp-rust-study-YYYY-MM-DD
+   ```
+
+4. **告知用户**
+   - 记忆 ID、标题
+   - 提醒在 Nowledge Mem 查看
 
 ### D. 计划节奏
 

@@ -10,19 +10,75 @@ skillshare sync --all          # 同步所有 skills
 skillshare check --all         # 检查更新
 ```
 
+## 一键部署
+
+### Linux / macOS
+
+```bash
+# 一键部署
+curl -fsSL https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.sh | bash
+
+# 或者手动部署
+git clone https://github.com/Merlynr/ai-skills.git ~/.config/skillshare
+cd ~/.config/skillshare
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### Windows
+
+```powershell
+# 一键部署
+irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex
+
+# 或者手动部署
+git clone https://github.com/Merlynr/ai-skills.git "$env:APPDATA\skillshare"
+cd "$env:APPDATA\skillshare"
+.\deploy.ps1
+```
+
+### 部署后配置
+
+1. **修改 Windows 用户名**（如需要）
+   ```yaml
+   # 编辑 config.yaml
+   sources:
+     skills: C:/Users/你的用户名/AppData/Roaming/skillshare/skills
+   ```
+
+2. **安装依赖**
+   ```bash
+   # skillshare CLI
+   npm install -g skillshare
+   
+   # nmem（可选）
+   pip install nowledge-mem
+   ```
+
+3. **同步 skills**
+   ```bash
+   skillshare sync --all
+   ```
+
 ## 仓库结构
 
 ```
 ~/.config/skillshare/          # Linux
 %AppData%\skillshare\          # Windows
-├── skills/              # 63+ skills（含 GSD、自制学习系列等）
+├── skills/              # 78+ skills（含 GSD、学习系列等）
 ├── agents/              # 自定义 agents（待扩展）
+├── script/              # 团队引擎脚本
+│   ├── gsd-team-engine.py
+│   ├── gsd-team-gen.py
+│   └── skill-registry.json
 ├── config.linux.yaml    # Linux 配置模板
 ├── config.windows.yaml  # Windows 配置模板
-├── config.yaml          # 本机激活配置（gitignore，由 setup 脚本生成）
-├── setup-config.sh      # Linux: cp config.linux.yaml → config.yaml
-├── setup-config.ps1     # Windows: 同上
-├── UPGRADE-GUIDE.md     # 升级指南（含 cymbal/gsd/rtk/nmem）
+├── config.yaml          # 本机激活配置（gitignore）
+├── setup-config.sh      # Linux 配置激活
+├── setup-config.ps1     # Windows 配置激活
+├── deploy.sh            # Linux 一键部署
+├── deploy.ps1           # Windows 一键部署
+├── UPGRADE-GUIDE.md     # 升级指南
 └── README.md            # 本文件
 ```
 

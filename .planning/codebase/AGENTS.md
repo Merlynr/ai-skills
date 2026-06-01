@@ -9,7 +9,7 @@ This file is generated from all files under .planning/codebase.
 - session_mode: continue_last
 - compile_commands: not_applicable
 - cymbal_warmup: succeeded
-- cymbal_summary: Done in 8ms — 0 indexed, 0 symbols, 1 unchanged
+- cymbal_summary: Done in 20ms — 0 indexed, 0 symbols, 8 unchanged
 
 ## Code Navigation
 
