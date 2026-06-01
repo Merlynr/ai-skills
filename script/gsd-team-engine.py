@@ -19,9 +19,91 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 
 SCRIPT_DIR = Path(__file__).parent
-SKILLS_DIR = Path.home() / ".config" / "skillshare" / "skills"
-WORKSPACE = Path.home() / ".config" / "opencode" / "team_workspace"
+
+
+def resolve_skillshare_root() -> Path:
+    """Resolve global skillshare root (Windows: %APPDATA%\\skillshare)."""
+    env_root = os.environ.get("SKILLSHARE_ROOT")
+    if env_root:
+        return Path(env_root).expanduser()
+
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "skillshare"
+
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    if xdg:
+        return Path(xdg) / "skillshare"
+    return Path.home() / ".config" / "skillshare"
+
+
+def _skills_dir_from_config(config_path: Path) -> Optional[Path]:
+    if not config_path.is_file():
+        return None
+    content = config_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"^sources:\s*\n(?:[ \t].*\n)*?[ \t]*skills:\s*(.+)\s*$",
+        content,
+        re.MULTILINE,
+    )
+    if not match:
+        return None
+    return Path(match.group(1).strip().strip('"\'').replace("/", os.sep))
+
+
+def resolve_skills_dir() -> Path:
+    """Resolve skills SSOT directory (config.yaml > env > platform default > repo)."""
+    env_skills = os.environ.get("SKILLSHARE_SKILLS")
+    if env_skills:
+        return Path(env_skills).expanduser()
+
+    root = resolve_skillshare_root()
+    from_config = _skills_dir_from_config(root / "config.yaml")
+    if from_config and from_config.is_dir():
+        return from_config
+
+    repo_skills = SCRIPT_DIR.parent / "skills"
+    if repo_skills.is_dir():
+        return repo_skills
+
+    return root / "skills"
+
+
+def resolve_opencode_config_dir() -> Path:
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    if xdg:
+        return Path(xdg) / "opencode"
+    if sys.platform == "win32":
+        return Path.home() / ".config" / "opencode"
+    return Path.home() / ".config" / "opencode"
+
+
+SKILLS_DIR = resolve_skills_dir()
+WORKSPACE = resolve_opencode_config_dir() / "team_workspace"
 LEARNINGS_DIR = SCRIPT_DIR / "learnings"
+
+# 仅触发词/标签匹配达到此分数才视为「强意图」；纯关键词映射为 1.0
+MIN_INTENT_SCORE = 2.0
+FALLBACK_SKILLS = ("gsd-do", "gsd-team", "gsd-progress")
+
+# 占位/演示类表述，避免「测试」子串误命中 QA 类 skill
+TASK_PLACEHOLDER_PATTERNS = (
+    r"测试任务",
+    r"试一下",
+    r"试试",
+    r"演示任务",
+    r"示例任务",
+)
+
+# 明确短语 → 本地 skill（达到 MIN_INTENT_SCORE）
+STRONG_PHRASE_RULES = (
+    (r"单元测试|集成测试|测试用例|添加测试|写测试|跑测试", ("gsd-add-tests", "gsd-verify-work"), 2.0),
+    (r"代码审查|code\s*review|安全审计", ("gsd-code-review", "gsd-secure-phase"), 2.0),
+    (r"修复.*bug|排错|调试", ("gsd-debug", "gsd-forensics"), 2.0),
+    (r"讨论阶段|规划阶段|写计划", ("gsd-discuss-phase", "gsd-plan-phase"), 2.0),
+    (r"执行阶段|实现功能|写代码", ("gsd-execute-phase", "gsd-fast"), 2.0),
+)
 
 
 class SkillMetadata:
@@ -95,6 +177,13 @@ class IntentRecognizer:
     
     def load_all_skills(self):
         """加载所有 Skill 的元数据"""
+        if not SKILLS_DIR.is_dir():
+            print(
+                f"警告: Skills 目录不存在: {SKILLS_DIR}\n"
+                f"  请确认 skillshare 已初始化，或设置 SKILLSHARE_SKILLS 环境变量。",
+                file=sys.stderr,
+            )
+            return
         for skill_dir in SKILLS_DIR.iterdir():
             if skill_dir.is_dir():
                 skill_md = skill_dir / "SKILL.md"
@@ -116,38 +205,112 @@ class IntentRecognizer:
         # 3. 标签匹配
         tag_matches = self._tag_match(task_lower)
         
-        # 合并结果并评分
-        scored_skills = self._score_matches(keyword_matches, trigger_matches, tag_matches)
+        # 合并结果并评分（仅保留本地已安装的 skill）
+        available = set(self.skills_cache.keys())
+        scored_skills = self._score_matches(
+            keyword_matches, trigger_matches, tag_matches, available
+        )
+        for skill, points in self._phrase_match(task_lower, available).items():
+            scored_skills[skill] = scored_skills.get(skill, 0) + points
         
-        # 按分数排序
-        sorted_skills = sorted(scored_skills.items(), key=lambda x: x[1], reverse=True)
+        sorted_skills = sorted(
+            scored_skills.items(), key=lambda x: (-x[1], x[0])
+        )
+        top_score = sorted_skills[0][1] if sorted_skills else 0.0
+        low_confidence = top_score < MIN_INTENT_SCORE
+        fallback_skill = self._pick_fallback_skill() if low_confidence else None
+        
+        if low_confidence:
+            primary_skill = fallback_skill
+        else:
+            primary_skill = sorted_skills[0][0]
         
         return {
             "task": task_desc,
-            "matched_skills": sorted_skills[:10],  # Top 10
-            "primary_skill": sorted_skills[0][0] if sorted_skills else None,
-            "confidence": sorted_skills[0][1] if sorted_skills else 0
+            "matched_skills": sorted_skills[:10],
+            "primary_skill": primary_skill,
+            "confidence": top_score,
+            "low_confidence": low_confidence,
+            "fallback_skill": fallback_skill,
         }
+    
+    def _phrase_match(self, task: str, available: set) -> Dict[str, float]:
+        if self._is_placeholder_task(task):
+            return {}
+        scores: Dict[str, float] = {}
+        for pattern, skills, points in STRONG_PHRASE_RULES:
+            if not re.search(pattern, task, re.IGNORECASE):
+                continue
+            for skill in skills:
+                if skill in available:
+                    scores[skill] = scores.get(skill, 0) + points
+        return scores
+    
+    def _pick_fallback_skill(self) -> Optional[str]:
+        for name in FALLBACK_SKILLS:
+            if name in self.skills_cache:
+                return name
+        return next(iter(self.skills_cache), None)
+    
+    def _is_placeholder_task(self, task: str) -> bool:
+        return any(re.search(p, task) for p in TASK_PLACEHOLDER_PATTERNS)
+    
+    def _matches_testing_intent(self, task: str) -> bool:
+        """QA/测试类意图（排除「测试任务」等占位描述）"""
+        if self._is_placeholder_task(task):
+            return False
+        testing_phrases = (
+            "单元测试",
+            "集成测试",
+            "测试用例",
+            "写测试",
+            "添加测试",
+            "跑测试",
+            "e2e",
+            "uat",
+        )
+        if any(p in task for p in testing_phrases):
+            return True
+        return bool(re.search(r"\btest\b", task))
+    
+    def _task_has_keyword(self, task: str, keyword: str) -> bool:
+        if keyword == "测试":
+            return self._matches_testing_intent(task)
+        return keyword in task
     
     def _keyword_match(self, task: str) -> List[str]:
         """关键词匹配"""
+        if self._is_placeholder_task(task):
+            return []
+        
         matches = []
         
         keyword_map = {
             "debug": ["调试", "bug", "错误", "修复", "fix", "debug", "问题"],
             "plan": ["计划", "规划", "设计", "架构", "plan", "design"],
             "implement": ["实现", "编写", "开发", "代码", "implement", "code"],
-            "verify": ["验证", "测试", "审查", "review", "test", "verify"],
+            "verify": [
+                "验证",
+                "审查",
+                "review",
+                "verify",
+                "单元测试",
+                "集成测试",
+                "测试用例",
+            ],
             "ui": ["前端", "界面", "ui", "css", "react", "vue", "组件"],
             "api": ["接口", "api", "后端", "server", "数据库"],
             "docs": ["文档", "doc", "readme", "说明"],
             "performance": ["性能", "优化", "performance", "optimize"],
             "security": ["安全", "漏洞", "security", "vulnerability"],
-            "refactor": ["重构", "refactor", "重写", "清理"]
+            "refactor": ["重构", "refactor", "重写", "清理"],
         }
         
         for category, keywords in keyword_map.items():
-            if any(k in task for k in keywords):
+            if category == "verify" and self._matches_testing_intent(task):
+                matches.append(category)
+                continue
+            if any(self._task_has_keyword(task, k) for k in keywords):
                 matches.append(category)
         
         return matches
@@ -176,35 +339,42 @@ class IntentRecognizer:
         
         return matches
     
-    def _score_matches(self, keyword_matches, trigger_matches, tag_matches) -> Dict[str, float]:
-        """计算匹配分数"""
+    def _score_matches(
+        self,
+        keyword_matches,
+        trigger_matches,
+        tag_matches,
+        available: set,
+    ) -> Dict[str, float]:
+        """计算匹配分数（仅计入本地已安装的 skill）"""
         scores = {}
         
-        # 触发词匹配权重最高（3分）
+        def bump(skill: str, points: float):
+            if skill in available:
+                scores[skill] = scores.get(skill, 0) + points
+        
         for skill in trigger_matches:
-            scores[skill] = scores.get(skill, 0) + 3.0
+            bump(skill, 3.0)
         
-        # 标签匹配权重中等（2分）
         for skill in tag_matches:
-            scores[skill] = scores.get(skill, 0) + 2.0
+            bump(skill, 2.0)
         
-        # 关键词匹配权重较低（1分），但需要映射到具体 skill
         keyword_to_skills = {
             "debug": ["gsd-debug", "gsd-forensics"],
             "plan": ["gsd-plan-phase", "gsd-discuss-phase"],
             "implement": ["gsd-execute-phase", "gsd-fast"],
-            "verify": ["gsd-code-review", "gsd-validate-phase"],
+            "verify": ["gsd-code-review", "gsd-validate-phase", "gsd-verify-work"],
             "ui": ["gsd-ui-phase", "gsd-ui-review"],
             "api": ["gsd-code-review", "gsd-add-tests"],
             "docs": ["gsd-docs-update", "gsd-ingest-docs"],
             "performance": ["gsd-debug", "gsd-validate-phase"],
             "security": ["gsd-secure-phase", "gsd-code-review"],
-            "refactor": ["gsd-map-codebase", "gsd-execute-phase"]
+            "refactor": ["gsd-map-codebase", "gsd-execute-phase"],
         }
         
         for keyword in keyword_matches:
             for skill in keyword_to_skills.get(keyword, []):
-                scores[skill] = scores.get(skill, 0) + 1.0
+                bump(skill, 1.0)
         
         return scores
 
@@ -519,11 +689,17 @@ class TeamEngine:
                     "steps": metadata.get("steps", [])
                 })
         
+        strong_matches = [
+            m for m in detailed_matches if m["score"] >= MIN_INTENT_SCORE
+        ]
+        
         return {
             "task": task_desc,
-            "intent_analysis": detailed_matches,
+            "intent_analysis": strong_matches or detailed_matches,
             "primary_skill": intent["primary_skill"],
-            "confidence": intent["confidence"]
+            "confidence": intent["confidence"],
+            "low_confidence": intent.get("low_confidence", False),
+            "fallback_skill": intent.get("fallback_skill"),
         }
     
     def generate_team(self, task_desc: str, team_name: str = None) -> Dict:
@@ -656,19 +832,35 @@ class TeamEngine:
         """打印分析结果"""
         print("\n" + "=" * 70)
         print(f"  任务: {analysis['task']}")
-        print(f"  主要意图: {analysis['primary_skill']}")
-        print(f"  置信度: {analysis['confidence']:.1f}")
+        if analysis.get("low_confidence"):
+            print(
+                f"  主要意图: {analysis['primary_skill']} "
+                f"(通用回退，最高匹配分 {analysis['confidence']:.1f} < {MIN_INTENT_SCORE:.0f})"
+            )
+        else:
+            print(f"  主要意图: {analysis['primary_skill']}")
+            print(f"  置信度: {analysis['confidence']:.1f}")
         print("=" * 70)
         
         print("\n  意图分析:")
         print("-" * 70)
         
-        for i, skill in enumerate(analysis["intent_analysis"][:5], 1):
-            print(f"  {i}. {skill['name']} (分数: {skill['score']:.1f})")
-            print(f"     描述: {skill['description'][:50]}...")
-            print(f"     标签: {', '.join(skill['tags'][:3])}")
-            print(f"     工具链: {', '.join(skill['tool_chain'][:3])}")
-            print()
+        matches = analysis["intent_analysis"][:5]
+        if not matches:
+            print("  (无强匹配 skill；请补充更具体的任务描述或 GSD 触发词)")
+        else:
+            for i, skill in enumerate(matches, 1):
+                desc = skill["description"] or "(无描述)"
+                snippet = desc[:50] + ("..." if len(desc) > 50 else "")
+                print(f"  {i}. {skill['name']} (分数: {skill['score']:.1f})")
+                print(f"     描述: {snippet}")
+                tags = ", ".join(skill["tags"][:3])
+                chain = ", ".join(skill["tool_chain"][:3])
+                if tags:
+                    print(f"     标签: {tags}")
+                if chain:
+                    print(f"     工具链: {chain}")
+                print()
         
         print("-" * 70)
 
@@ -759,8 +951,10 @@ def main():
     # 生成团队配置
     config = engine.generate_team(args.task, args.name)
     
-    # 打印摘要
-    print_team_summary(config)
+    # 先展示意图分析，再展示团队摘要（与 --analyze 输出一致）
+    analysis = engine.analyze_task(args.task)
+    engine.print_analysis(analysis)
+    print_team_summary(config, analysis=analysis)
     
     # 保存配置
     output_path = save_config(config, args.output)
@@ -774,14 +968,21 @@ def main():
         print(generate_opencode_commands(config))
 
 
-def print_team_summary(config: Dict):
-    """打印团队摘要"""
+def print_team_summary(config: Dict, analysis: Dict = None):
+    """打印团队摘要（analysis 由 analyze_task 传入时可避免重复解释意图）"""
+    intent = config.get("intent_analysis", {})
     print("\n" + "=" * 70)
     print(f"  团队: {config['name']}")
     print(f"  任务: {config['task'][:50]}...")
     print(f"  引擎: {config.get('engine', 'unknown')}")
-    print(f"  主要意图: {config['intent_analysis']['primary_skill']}")
-    print(f"  置信度: {config['intent_analysis']['confidence']:.1f}")
+    if analysis and analysis.get("low_confidence"):
+        print(
+            f"  主要意图: {intent.get('primary_skill')} "
+            f"(通用回退，见上方意图分析)"
+        )
+    else:
+        print(f"  主要意图: {intent.get('primary_skill')}")
+        print(f"  置信度: {intent.get('confidence', 0):.1f}")
     print("=" * 70)
     
     print("\n  成员配置:")

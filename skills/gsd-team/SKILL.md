@@ -52,13 +52,35 @@ $gsd-team 任务描述
 请描述需要完成的任务：
 ```
 
-### Step 2: 意图识别
+### Step 2: 意图识别（必须向用户展示）
 
-使用 `gsd-team-engine.py` 进行意图分析：
+运行引擎并**把完整终端输出贴给用户**（含主要意图、置信度/回退说明、Top 匹配 skills）：
 
 ```bash
+# Windows（skillshare 在 %APPDATA%\skillshare）
+python "%APPDATA%\skillshare\script\gsd-team-engine.py" --analyze "任务描述"
+
+# Linux / macOS
 python3 ~/.config/skillshare/script/gsd-team-engine.py --analyze "任务描述"
 ```
+
+仅 `--analyze` 时输出示例：
+
+```
+======================================================================
+  任务: 实现用户认证系统
+  主要意图: gsd-execute-phase
+  置信度: 2.0
+======================================================================
+
+  意图分析:
+----------------------------------------------------------------------
+  1. gsd-execute-phase (分数: 2.0)
+     描述: ...
+----------------------------------------------------------------------
+```
+
+若跳过本步直接生成团队配置，默认命令也会先打印同一段「意图分析」，再打印团队摘要。
 
 ### Step 3: 动态加载 Skills
 
@@ -78,7 +100,10 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --commands
 
 ### Step 5: 用户确认
 
-向用户展示团队配置，等待确认：
+向用户展示 **两段内容**（均来自引擎输出，不要省略意图分析）：
+
+1. **意图分析**（Step 2 的 `--analyze` 输出，或生成命令自带的第一段）
+2. **团队配置摘要**（成员、各阶段匹配的 skills）
 
 ```
 ======================================================================
@@ -91,12 +116,16 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --commands
   成员配置:
 ----------------------------------------------------------------------
   1. architect (架构师) - plan 阶段
-  2. researcher (研究员) - plan 阶段
-  3. implementer (实现者) - implement 阶段
-  4. reviewer (审查者) - verify 阶段
+  ...
 ----------------------------------------------------------------------
 
 是否执行？(y/n)
+```
+
+生成完整配置（含意图分析 + 团队摘要）：
+
+```bash
+python "%APPDATA%\skillshare\script\gsd-team-engine.py" "任务描述"
 ```
 
 ### Step 6: 自动执行团队任务
@@ -275,11 +304,14 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 ## 相关命令
 
 ```bash
-# 分析任务意图
-python3 ~/.config/skillshare/script/gsd-team-engine.py --analyze "任务描述"
+# 仅意图分析（Step 2）
+python "%APPDATA%\skillshare\script\gsd-team-engine.py" --analyze "任务描述"
 
-# 生成团队配置
-python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --commands
+# 意图分析 + 团队配置 + 保存 JSON（推荐，一次看完）
+python "%APPDATA%\skillshare\script\gsd-team-engine.py" "任务描述"
+
+# 生成 OpenCode 命令
+python "%APPDATA%\skillshare\script\gsd-team-engine.py" "任务描述" --commands
 
 # 记录学习并同步到 nmem
 python3 ~/.config/skillshare/script/gsd-team-engine.py --learn "任务描述" --result success --learnings "经验"
