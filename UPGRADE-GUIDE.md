@@ -277,6 +277,55 @@ skillshare status
 skillshare doctor
 ```
 
+### ⚠️ 覆盖风险警告
+
+**`skillshare update` 会覆盖本地修改！**
+
+| 命令 | 影响 |
+|------|------|
+| `skillshare update <skill>` | ⚠️ 覆盖该 skill 的本地修改 |
+| `skillshare update --all` | ⚠️ 覆盖所有 skill 的本地修改 |
+| `skillshare sync` | ✅ 安全，不会覆盖源文件 |
+| `skillshare upgrade` | ✅ 安全，只升级 CLI |
+
+**受影响的内容**：
+- 手动添加的 `triggers`、`tags`、`tool_chain` 等元数据
+- 自定义的 skill 内容修改
+
+**不受影响的内容**：
+- `script/` 目录下的脚本（如 gsd-team-engine.py）
+- GSD 升级（安装到 `.claude/skills/`，不影响 skillshare）
+
+#### 保护方案
+
+**方案 1：更新后恢复（推荐）**
+
+```bash
+# 已提交到 Git，更新后拉取即可恢复
+skillshare update --all
+cd ~/.config/skillshare && git pull origin master
+```
+
+**方案 2：备份后更新**
+
+```bash
+# 备份
+cd ~/.config/skillshare && git stash
+
+# 更新
+skillshare update --all
+
+# 恢复
+git stash pop
+```
+
+**方案 3：排除特定 skill**
+
+```bash
+# 添加到 .skillignore，阻止更新
+echo "gsd-*" >> ~/.config/skillshare/.skillignore
+```
+
 ---
 
 ## 7. 一键升级流程
