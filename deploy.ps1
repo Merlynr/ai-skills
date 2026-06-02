@@ -7,6 +7,14 @@ param(
     [switch]$Force
 )
 
+# 如果未提供用户名，自动检测当前 Windows 用户
+if ($Username -eq "" -and ($IsWindows -or $env:OS -eq "Windows_NT")) {
+    $Username = $env:USERNAME
+    if ($Username -ne "") {
+        Write-Host "[INFO] 自动检测到用户名: $Username" -ForegroundColor Green
+    }
+}
+
 # 配置
 $REPO_URL = "https://github.com/Merlynr/ai-skills.git"
 

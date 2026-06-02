@@ -61,16 +61,13 @@ chmod +x setup-config.sh
 打开 **PowerShell**，运行：
 
 ```powershell
-# 自动部署（使用默认用户名）
-irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex
+# 下载脚本
+irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 -OutFile deploy.ps1
 
-# 指定用户名部署（推荐）
-irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex -Username "你的用户名"
-```
+# 运行（自动检测用户名）
+.\deploy.ps1
 
-或下载后运行：
-
-```powershell
+# 或手动指定用户名
 .\deploy.ps1 -Username "你的用户名"
 ```
 
