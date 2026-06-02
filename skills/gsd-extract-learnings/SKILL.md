@@ -9,7 +9,7 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
-tags: [utility, learnings, extract, knowledge]
+tags: [learnings, retrospective, decisions]
 triggers:
   - 提取经验
   - 学习总结

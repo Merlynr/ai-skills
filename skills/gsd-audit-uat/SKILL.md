@@ -1,7 +1,7 @@
 ---
 name: "gsd-audit-uat"
 description: "Cross-phase audit of all outstanding UAT and verification items"
-tags: [review, audit, uat, verification]
+tags: [uat-audit, verification-audit]
 triggers:
   - UAT 审计
   - 验证审计

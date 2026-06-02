@@ -1,7 +1,7 @@
 ---
 name: "gsd-note"
 description: "Zero-friction idea capture. Append, list, or promote notes to todos."
-tags: [task, note, capture, idea]
+tags: [quick-note, idea-capture, note-taking]
 triggers:
   - 记笔记
   - 记录

@@ -1,7 +1,7 @@
 ---
 name: "gsd-milestone-summary"
 description: "Generate a comprehensive project summary from milestone artifacts for team onboarding and review"
-tags: [docs, summary, milestone, report]
+tags: [milestone-report, onboarding-summary]
 triggers:
   - 里程碑总结
   - 项目总结

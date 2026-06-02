@@ -1,7 +1,7 @@
 ---
 name: "gsd-remove-workspace"
 description: "Remove a GSD workspace and clean up worktrees"
-tags: [workspace, remove, delete, cleanup]
+tags: [workspace-remove, worktree-cleanup]
 triggers:
   - 删除工作区
   - 移除工作区

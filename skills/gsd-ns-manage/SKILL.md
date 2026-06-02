@@ -1,7 +1,7 @@
 ---
 name: gsd-ns-manage
 description: "config workspace | workstreams thread update ship inbox"
-tags: [manage, config, workspace]
+tags: [workspace-admin, skillshare-manage, inbox-manage]
 triggers:
   - 管理
   - 工作区管理

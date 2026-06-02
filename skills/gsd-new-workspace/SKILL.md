@@ -1,7 +1,7 @@
 ---
 name: "gsd-new-workspace"
 description: "Create an isolated workspace with repo copies and independent .planning/"
-tags: [workspace, new, isolate, create]
+tags: [workspace-create, isolated-workspace]
 triggers:
   - 新建工作区
   - 创建工作区

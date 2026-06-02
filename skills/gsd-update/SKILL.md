@@ -1,7 +1,7 @@
 ---
 name: "gsd-update"
 description: "Update GSD to latest version with changelog display"
-tags: [gsd-update, update, maintenance]
+tags: [gsd-update, upgrade, maintenance, changelog]
 triggers:
   - gsd升级
   - 升级 GSD

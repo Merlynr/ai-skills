@@ -1,7 +1,7 @@
 ---
 name: gsd-plan-review-convergence
 description: "Cross-AI plan convergence loop — replan with review feedback until no HIGH concerns remain."
-tags: [plan, review, convergence]
+tags: [plan-review, convergence, cross-ai]
 triggers:
   - 计划审查收敛
   - plan review

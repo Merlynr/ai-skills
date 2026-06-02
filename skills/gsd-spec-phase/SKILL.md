@@ -9,7 +9,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
-tags: [planning, specification, requirements]
+tags: [specification, requirements, ambiguity]
 triggers:
   - 规格说明
   - 模糊度分析

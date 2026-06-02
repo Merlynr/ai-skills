@@ -1,7 +1,7 @@
 ---
 name: "gsd-join-discord"
 description: "Join the GSD Discord community"
-tags: [utility, community, discord, join]
+tags: [community, discord]
 triggers:
   - 加入社区
   - join discord

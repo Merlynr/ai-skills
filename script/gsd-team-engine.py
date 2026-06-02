@@ -19,6 +19,22 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 
 SCRIPT_DIR = Path(__file__).parent
+_TRIAGE_MODULE = None
+
+
+def _get_triage_module():
+    global _TRIAGE_MODULE
+    if _TRIAGE_MODULE is not None:
+        return _TRIAGE_MODULE
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "gsd_team_triage", SCRIPT_DIR / "gsd-team-triage.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _TRIAGE_MODULE = module
+    return module
 
 
 def resolve_skillshare_root() -> Path:
@@ -96,19 +112,45 @@ TASK_PLACEHOLDER_PATTERNS = (
     r"示例任务",
 )
 
-# 过短/过泛 tag 不参与子串匹配，避免「gsd升级」误命中 tag=gsd
+# 过短/过泛 tag 不参与子串匹配，避免误命中
 GENERIC_TAGS = frozenset({
     "gsd", "ui", "api", "doc", "stack", "tool", "test", "dev", "mcp",
+    "fix", "new", "map", "pr", "ai", "uat", "mvp", "add",
+    "utility", "review", "planning", "phase", "project", "workflow",
+    "manage", "config", "settings", "execute", "context", "docs",
+    "idea", "task", "milestone", "audit", "quality", "analysis",
+    "explore", "capture", "plan", "code", "spec", "update", "help",
+    "team", "research", "debug", "design", "security", "testing",
+})
+
+# 过泛 trigger 降权（仍可能命中，但分数低于更具体的 trigger）
+GENERIC_TRIGGERS = frozenset({
+    "配置", "设置", "管理", "帮助", "help", "team", "探索", "explore",
+    "config", "settings", "phase", "review", "工作流", "config",
 })
 
 # 明确短语 → 本地 skill（达到 MIN_INTENT_SCORE）
 STRONG_PHRASE_RULES = (
-    (r"gsd\s*升级|升级\s*gsd|update\s*gsd|gsd-update|gsd\s*update", ("gsd-update",), 3.0),
-    (r"单元测试|集成测试|测试用例|添加测试|写测试|跑测试", ("gsd-add-tests", "gsd-verify-work"), 2.0),
-    (r"代码审查|code\s*review|安全审计", ("gsd-code-review", "gsd-secure-phase"), 2.0),
-    (r"修复.*bug|排错|调试", ("gsd-debug", "gsd-forensics"), 2.0),
-    (r"讨论阶段|规划阶段|写计划", ("gsd-discuss-phase", "gsd-plan-phase"), 2.0),
-    (r"执行阶段|实现功能|写代码", ("gsd-execute-phase", "gsd-fast"), 2.0),
+    (r"gsd\s*升级|升级\s*gsd|update\s*gsd|gsd-update|gsd\s*update", ("gsd-update",), 4.0),
+    (r"merlynr|dev\s*stack|工作流栈|开发工作流", ("merlynr-dev-stack",), 4.0),
+    (r"组建团队|生成\s*team|多人协作", ("gsd-team",), 4.0),
+    (r"map\s*codebase|映射代码库|代码结构", ("gsd-map-codebase",), 3.5),
+    (r"检查进度|项目进度|当前状态", ("gsd-progress",), 3.5),
+    (r"ns\s*workflow|gsd\s*ns\s*workflow", ("gsd-ns-workflow",), 3.5),
+    (r"重新应用补丁|reapply\s*patches?", ("gsd-reapply-patches",), 3.5),
+    (r"单元测试|集成测试|测试用例|添加测试|写测试|跑测试|生成测试", ("gsd-add-tests",), 3.5),
+    (r"代码审查|code\s*review|安全审计", ("gsd-code-review", "gsd-secure-phase"), 3.0),
+    (r"性能问题|性能瓶颈|是否存在.*性能|合包|流量采集", ("gsd-debug", "gsd-map-codebase", "merlynr-dev-stack"), 3.5),
+    (r"修复.*bug|排错|调试", ("gsd-debug", "gsd-forensics"), 3.0),
+    (r"讨论阶段|需求讨论|discuss\s*phase", ("gsd-discuss-phase", "gsd-spec-phase"), 2.5),
+    (r"规划阶段|创建计划|写计划|plan\s*phase", ("gsd-plan-phase",), 3.0),
+    (r"执行阶段|实现功能|execute\s*phase", ("gsd-execute-phase",), 2.5),
+    (r"工作流配置|配置工作流|gsd\s*配置|配置\s*gsd", ("gsd-config",), 3.0),
+    (r"恢复补丁|重新应用补丁|reapply\s*patches?", ("gsd-reapply-patches",), 3.5),
+    (r"写文档|更新文档|生成文档|文档维护", ("gsd-docs-update",), 3.0),
+    (r"拆分\s*pr|拆成\s*pr|pr\s*分支", ("gsd-pr-branch",), 3.0),
+    (r"导入文档|ingest\s*docs", ("gsd-ingest-docs",), 3.0),
+    (r"发布|准备合并|创建\s*pr(?!\s*分支)", ("gsd-ship",), 2.5),
 )
 
 
@@ -231,26 +273,27 @@ class IntentRecognizer:
     def identify_intent(self, task_desc: str) -> Dict:
         """识别任务意图，返回匹配的 Skills"""
         task_lower = task_desc.lower()
-        
-        # 1. 关键词匹配（快速路径）
-        keyword_matches = self._keyword_match(task_lower)
-        
-        # 2. 触发词匹配
-        trigger_matches = self._trigger_match(task_lower)
-        
-        # 3. 标签匹配
-        tag_matches = self._tag_match(task_lower)
-        
-        # 合并结果并评分（仅保留本地已安装的 skill）
         available = set(self.skills_cache.keys())
-        scored_skills = self._score_matches(
-            keyword_matches, trigger_matches, tag_matches, available
-        )
-        for skill, points in self._phrase_match(task_lower, available).items():
-            scored_skills[skill] = scored_skills.get(skill, 0) + points
-        
+        scored_skills: Dict[str, float] = {}
+
+        def merge_scores(src: Dict[str, float]) -> None:
+            for skill, points in src.items():
+                if skill in available:
+                    scored_skills[skill] = scored_skills.get(skill, 0) + points
+
+        merge_scores(self._skill_name_scores(task_lower, available))
+        merge_scores(self._trigger_scores(task_lower, available))
+        merge_scores(self._tag_scores(task_lower, available))
+        merge_scores(self._phrase_match(task_lower, available))
+        merge_scores(self._keyword_scores(task_lower, available))
+
         sorted_skills = sorted(
-            scored_skills.items(), key=lambda x: (-x[1], x[0])
+            scored_skills.items(),
+            key=lambda x: (
+                -x[1],
+                -self._longest_trigger_len(x[0], task_lower),
+                x[0],
+            ),
         )
         top_score = sorted_skills[0][1] if sorted_skills else 0.0
         low_confidence = top_score < MIN_INTENT_SCORE
@@ -344,25 +387,99 @@ class IntentRecognizer:
         
         for category, keywords in keyword_map.items():
             if category == "verify" and self._matches_testing_intent(task):
-                matches.append(category)
                 continue
             if any(self._task_has_keyword(task, k) for k in keywords):
                 matches.append(category)
         
         return matches
     
-    def _trigger_match(self, task: str) -> List[str]:
-        """触发词匹配"""
-        matches = []
-        
-        for skill_name, metadata in self.skills_cache.items():
-            for trigger in metadata.get("triggers", []):
-                if trigger.lower() in task:
-                    matches.append(skill_name)
+    def _skill_name_variants(self, skill_name: str) -> List[str]:
+        variants = {
+            skill_name.lower(),
+            skill_name.lower().replace("-", " "),
+            skill_name.lower().replace("gsd-", "gsd "),
+        }
+        return [v for v in variants if len(v) >= 4]
+
+    def _skill_name_scores(self, task: str, available: set) -> Dict[str, float]:
+        scores: Dict[str, float] = {}
+        for skill_name in available:
+            for variant in self._skill_name_variants(skill_name):
+                if variant in task:
+                    scores[skill_name] = max(scores.get(skill_name, 0.0), 4.5)
                     break
-        
-        return matches
-    
+        return scores
+
+    def _trigger_in_task(self, trigger: str, task: str) -> bool:
+        """Exact or flexible trigger match (word order / spacing variants)."""
+        trigger_l = trigger.lower().strip()
+        if not trigger_l:
+            return False
+        if trigger_l in task:
+            return True
+
+        parts = [p for p in re.split(r"\s+", trigger_l) if p]
+        if len(parts) >= 2 and all(part in task for part in parts):
+            return True
+
+        if re.fullmatch(r"[\u4e00-\u9fff]+", trigger_l) and len(trigger_l) >= 4:
+            for i in range(2, len(trigger_l)):
+                left, right = trigger_l[:i], trigger_l[i:]
+                if left in task and right in task:
+                    return True
+
+        return False
+
+    def _trigger_match_len(self, trigger: str, task: str) -> int:
+        trigger_l = trigger.lower().strip()
+        if trigger_l in task:
+            return len(trigger_l)
+        if self._trigger_in_task(trigger_l, task):
+            return len(trigger_l)
+        return 0
+
+    def _trigger_specificity_score(self, skill_name: str, trigger: str) -> float:
+        trigger_l = trigger.lower().strip()
+        if not trigger_l:
+            return 0.0
+
+        score = 3.0 + min(len(trigger_l) / 10.0, 2.0)
+        if trigger_l in GENERIC_TRIGGERS:
+            score -= 1.25
+
+        skill_token = skill_name.replace("gsd-", "").replace("-", " ")
+        trigger_token = trigger_l.replace("-", " ")
+        if skill_token and skill_token in trigger_token:
+            score += 1.5
+        if trigger_l.replace(" ", "-") in skill_name:
+            score += 1.0
+
+        return score
+
+    def _trigger_scores(self, task: str, available: set) -> Dict[str, float]:
+        scores: Dict[str, float] = {}
+        for skill_name, metadata in self.skills_cache.items():
+            if skill_name not in available:
+                continue
+            best = 0.0
+            for trigger in metadata.get("triggers", []):
+                trigger_l = trigger.lower().strip()
+                if not trigger_l or not self._trigger_in_task(trigger_l, task):
+                    continue
+                best = max(best, self._trigger_specificity_score(skill_name, trigger))
+            if best > 0:
+                scores[skill_name] = best
+        return scores
+
+    def _longest_trigger_len(self, skill_name: str, task: str) -> int:
+        metadata = self.skills_cache.get(skill_name, {})
+        longest = 0
+        for trigger in metadata.get("triggers", []):
+            match_len = self._trigger_match_len(trigger, task)
+            if match_len:
+                longest = max(longest, match_len)
+        return longest
+
     def _tag_matches_task(self, tag: str, task: str) -> bool:
         tag_l = tag.lower().strip()
         if not tag_l:
@@ -371,55 +488,57 @@ class IntentRecognizer:
             return False
         return tag_l in task
 
-    def _tag_match(self, task: str) -> List[str]:
-        """标签匹配（排除过短/过泛 tag，避免 gsd 等误命中）"""
-        matches = []
+    def _tag_specificity_score(self, skill_name: str, tag: str) -> float:
+        tag_l = tag.lower().strip()
+        score = 2.0 + min(len(tag_l) / 12.0, 1.5)
+        skill_token = skill_name.replace("gsd-", "").replace("-", " ")
+        tag_token = tag_l.replace("-", " ")
+        if skill_token and skill_token in tag_token:
+            score += 1.0
+        if tag_l.replace(" ", "-") in skill_name or tag_l in skill_name:
+            score += 0.75
+        return score
 
+    def _tag_scores(self, task: str, available: set) -> Dict[str, float]:
+        scores: Dict[str, float] = {}
         for skill_name, metadata in self.skills_cache.items():
+            if skill_name not in available:
+                continue
+            best = 0.0
             for tag in metadata.get("tags", []):
-                if self._tag_matches_task(tag, task):
-                    matches.append(skill_name)
-                    break
+                if not self._tag_matches_task(tag, task):
+                    continue
+                best = max(best, self._tag_specificity_score(skill_name, tag))
+            if best > 0:
+                scores[skill_name] = best
+        return scores
 
-        return matches
-    
-    def _score_matches(
-        self,
-        keyword_matches,
-        trigger_matches,
-        tag_matches,
-        available: set,
-    ) -> Dict[str, float]:
-        """计算匹配分数（仅计入本地已安装的 skill）"""
-        scores = {}
-        
-        def bump(skill: str, points: float):
-            if skill in available:
-                scores[skill] = scores.get(skill, 0) + points
-        
-        for skill in trigger_matches:
-            bump(skill, 3.0)
-        
-        for skill in tag_matches:
-            bump(skill, 2.0)
-        
+    def _keyword_scores(self, task: str, available: set) -> Dict[str, float]:
+        scores: Dict[str, float] = {}
+        keyword_matches = self._keyword_match(task)
         keyword_to_skills = {
             "debug": ["gsd-debug", "gsd-forensics"],
-            "plan": ["gsd-plan-phase", "gsd-discuss-phase"],
-            "implement": ["gsd-execute-phase", "gsd-fast"],
+            "plan": ["gsd-plan-phase", "gsd-discuss-phase", "gsd-spec-phase"],
+            "implement": ["gsd-execute-phase", "gsd-fast", "gsd-quick"],
             "verify": ["gsd-code-review", "gsd-validate-phase", "gsd-verify-work"],
-            "ui": ["gsd-ui-phase", "gsd-ui-review"],
-            "api": ["gsd-code-review", "gsd-add-tests"],
+            "test": ["gsd-add-tests", "gsd-verify-work"],
+            "ui": ["gsd-ui-phase", "gsd-ui-review", "gsd-sketch"],
+            "api": ["gsd-ai-integration-phase"],
             "docs": ["gsd-docs-update", "gsd-ingest-docs"],
             "performance": ["gsd-debug", "gsd-validate-phase"],
             "security": ["gsd-secure-phase", "gsd-code-review"],
             "refactor": ["gsd-map-codebase", "gsd-execute-phase"],
+            "team": ["gsd-team"],
+            "upgrade": ["gsd-update", "gsd-reapply-patches"],
         }
-        
+
+        if self._matches_testing_intent(task):
+            keyword_matches.append("test")
+
         for keyword in keyword_matches:
             for skill in keyword_to_skills.get(keyword, []):
-                bump(skill, 1.0)
-        
+                if skill in available:
+                    scores[skill] = scores.get(skill, 0.0) + 1.0
         return scores
 
 
@@ -722,6 +841,32 @@ def build_researcher_prompt(task_desc: str) -> str:
     )
 
 
+def format_brief_evidence(brief: Dict) -> str:
+    evidence = brief.get("evidence") or {}
+    lines = []
+    modules = evidence.get("modules") or []
+    if modules:
+        lines.append("模块: " + ", ".join(modules[:8]))
+    for item in (evidence.get("interfaces") or [])[:8]:
+        line = item.get("line")
+        loc = f"{item.get('file')}:{line}" if line else item.get("file")
+        lines.append(f"- {item.get('kind')} {item.get('name')} @ {loc}")
+    return "\n".join(lines) if lines else "(Brief 中暂无 Cymbal 证据)"
+
+
+def build_researcher_prompt_from_brief(task_desc: str, brief: Dict) -> str:
+    evidence = brief.get("evidence") or {}
+    if evidence.get("modules") or evidence.get("interfaces"):
+        return (
+            f"基于 Phase 0 Cymbal Brief 做缺口验证（禁止全库重扫）：{task_desc}\n\n"
+            f"已有证据:\n{format_brief_evidence(brief)}\n\n"
+            "仅对 Brief 未覆盖的路径/符号执行精确 Cymbal 命令；"
+            "发现缺口时补充到研判结论，不要重复罗列全库。\n\n"
+            f"{RESEARCHER_CYMBAL_PHASE1}"
+        )
+    return build_researcher_prompt(task_desc)
+
+
 class TeamEngine:
     """团队引擎 - 整合所有组件"""
     
@@ -762,83 +907,191 @@ class TeamEngine:
             "fallback_skill": intent.get("fallback_skill"),
         }
     
-    def generate_team(self, task_desc: str, team_name: str = None) -> Dict:
-        """生成团队配置"""
+    def build_triage_brief(self, task_desc: str, repo_root: str = None) -> Dict:
+        triage = _get_triage_module()
+        builder = triage.TriageBuilder(self.analyze_task)
+        return builder.build(task_desc, repo_root)
+
+    def _skills_from_brief(self, brief: Dict, phase: str, default_skills: List[str]) -> List[str]:
+        shortlist = [
+            item["name"]
+            for item in brief.get("skill_shortlist", [])
+            if item.get("name")
+        ]
+        picked = [
+            name
+            for name in shortlist
+            if self.skill_loader._skill_matches_phase(name, phase)
+        ]
+        return picked[:4] if picked else default_skills
+
+    def _skip_roles_from_brief(self, brief: Optional[Dict]) -> set:
+        if not brief:
+            return set()
+        hints = brief.get("dispatch_hints") or {}
+        roles = hints.get("skip_roles") or brief.get("skip_roles") or []
+        return {str(role).lower().strip() for role in roles if role}
+
+    def _role_skipped(self, role_name: str, skip_roles: set) -> bool:
+        return role_name.lower() in skip_roles
+
+    def _workflow_phases_from_members(self, members: List[Dict]) -> List[str]:
+        phases = []
+        for phase in ("triage", "plan", "implement", "verify", "debug"):
+            if any(member.get("phase") == phase for member in members):
+                phases.append(phase)
+        return phases or ["plan", "implement", "verify"]
+
+    def generate_team(
+        self,
+        task_desc: str,
+        team_name: str = None,
+        brief: Dict = None,
+    ) -> Dict:
+        """生成团队配置；传入 brief 时启用 Phase 0 Cymbal 研判驱动编组"""
         if not team_name:
             team_name = "task-team"
-        
-        # 动态加载 skills
-        plan_skills = self.skill_loader.load_skills_for_task(task_desc, "plan")
-        implement_skills = self.skill_loader.load_skills_for_task(task_desc, "implement")
-        verify_skills = self.skill_loader.load_skills_for_task(task_desc, "verify")
-        debug_skills = self.skill_loader.load_skills_for_task(task_desc, "debug")
-        
-        # 获取意图分析
+
+        default_plan = self.skill_loader.load_skills_for_task(task_desc, "plan")
+        default_implement = self.skill_loader.load_skills_for_task(task_desc, "implement")
+        default_verify = self.skill_loader.load_skills_for_task(task_desc, "verify")
+        default_debug = self.skill_loader.load_skills_for_task(task_desc, "debug")
+
+        if brief:
+            plan_skills = self._skills_from_brief(
+                brief, "plan", default_plan or ["gsd-discuss-phase", "gsd-spec-phase", "gsd-plan-phase"]
+            )
+            implement_skills = self._skills_from_brief(
+                brief, "implement", default_implement or ["gsd-execute-phase", "gsd-fast"]
+            )
+            verify_skills = self._skills_from_brief(
+                brief, "verify", default_verify or ["gsd-code-review", "gsd-validate-phase"]
+            )
+            debug_skills = self._skills_from_brief(brief, "debug", default_debug)
+            hints = brief.get("dispatch_hints") or {}
+        else:
+            plan_skills = default_plan
+            implement_skills = default_implement
+            verify_skills = default_verify
+            debug_skills = default_debug
+            hints = {}
+
+        skip_roles = self._skip_roles_from_brief(brief)
         intent = self.intent_recognizer.identify_intent(task_desc)
-        
         members = []
-        
-        # 架构师
-        members.append({
-            "name": "architect",
-            "role": "架构师",
-            "phase": "plan",
-            "kind": "subagent_type",
-            "subagent_type": "oracle",
-            "prompt": f"分析任务需求，设计系统架构：{task_desc}",
-            "skills": plan_skills or ["gsd-discuss-phase", "gsd-spec-phase", "gsd-plan-phase"],
-            "skill_purpose": "使用规划类 skills 进行需求分析和架构设计",
-            "tool_chain": self._get_combined_tool_chain(plan_skills)
-        })
-        
-        # 研究员
-        researcher_skills = list(plan_skills or ["gsd-map-codebase", "gsd-explore"])
-        if (
-            "merlynr-dev-stack" not in researcher_skills
-            and "merlynr-dev-stack" in self.intent_recognizer.skills_cache
-        ):
-            researcher_skills.append("merlynr-dev-stack")
-        members.append({
-            "name": "researcher",
-            "role": "研究员",
-            "phase": "plan",
-            "kind": "subagent_type",
-            "subagent_type": "explore",
-            "prompt": build_researcher_prompt(task_desc),
-            "skills": researcher_skills,
-            "skill_purpose": "Phase 1 证据：Cymbal 探库 + map-codebase",
-            "tool_chain": self._get_combined_tool_chain(researcher_skills)
-        })
-        
-        # 实现者
-        impl_category = "visual-engineering" if any(k in task_desc.lower() for k in ["ui", "前端", "界面"]) else "unspecified-high"
-        members.append({
-            "name": "implementer",
-            "role": "实现者",
-            "phase": "implement",
-            "kind": "category",
-            "category": impl_category,
-            "prompt": f"实现功能代码，遵循项目现有模式：{task_desc}",
-            "skills": implement_skills or ["gsd-execute-phase", "gsd-fast"],
-            "skill_purpose": "使用实现类 skills 执行编码和测试",
-            "tool_chain": self._get_combined_tool_chain(implement_skills)
-        })
-        
-        # 审查者
-        members.append({
-            "name": "reviewer",
-            "role": "审查者",
-            "phase": "verify",
-            "kind": "subagent_type",
-            "subagent_type": "oracle",
-            "prompt": f"审查代码质量、安全性和最佳实践：{task_desc}",
-            "skills": verify_skills or ["gsd-code-review", "gsd-validate-phase"],
-            "skill_purpose": "使用验证类 skills 进行代码审查",
-            "tool_chain": self._get_combined_tool_chain(verify_skills)
-        })
-        
-        # 根据意图添加专家成员
-        if debug_skills:
+        evidence_block = format_brief_evidence(brief) if brief else ""
+        scope = hints.get("scope_summary") if brief else ""
+
+        if brief:
+            members.append({
+                "name": "triage-lead",
+                "role": "研判负责人",
+                "phase": "triage",
+                "kind": "subagent_type",
+                "subagent_type": "oracle",
+                "prompt": brief.get("triage_lead_prompt") or f"研判任务分工：{task_desc}",
+                "skills": ["gsd-team", "merlynr-dev-stack"],
+                "skill_purpose": "基于 Cymbal Brief + skill 短名单安排成员与 skills",
+                "tool_chain": self._get_combined_tool_chain(["gsd-team", "merlynr-dev-stack"]),
+            })
+
+        architect_prompt = f"分析任务需求，设计系统架构：{task_desc}"
+        if brief and evidence_block != "(Brief 中暂无 Cymbal 证据)":
+            architect_prompt += (
+                f"\n\nPhase 0 Cymbal 证据（已嗅探，勿全库重扫）：\n{evidence_block}\n"
+                f"范围: {scope}"
+            )
+
+        if not self._role_skipped("architect", skip_roles):
+            members.append({
+                "name": "architect",
+                "role": "架构师",
+                "phase": "plan",
+                "kind": "subagent_type",
+                "subagent_type": "oracle",
+                "prompt": architect_prompt,
+                "skills": plan_skills or ["gsd-discuss-phase", "gsd-spec-phase", "gsd-plan-phase"],
+                "skill_purpose": "使用规划类 skills 进行需求分析和架构设计",
+                "tool_chain": self._get_combined_tool_chain(plan_skills),
+            })
+
+        if not self._role_skipped("researcher", skip_roles):
+            researcher_skills = list(plan_skills or ["gsd-map-codebase", "gsd-explore"])
+            if (
+                "merlynr-dev-stack" not in researcher_skills
+                and "merlynr-dev-stack" in self.intent_recognizer.skills_cache
+            ):
+                researcher_skills.append("merlynr-dev-stack")
+            researcher_prompt = (
+                build_researcher_prompt_from_brief(task_desc, brief)
+                if brief
+                else build_researcher_prompt(task_desc)
+            )
+            members.append({
+                "name": "researcher",
+                "role": "研究员",
+                "phase": "plan",
+                "kind": "subagent_type",
+                "subagent_type": "explore",
+                "prompt": researcher_prompt,
+                "skills": researcher_skills,
+                "skill_purpose": "Brief 缺口验证（Cymbal 精确补查，非全库罗列）"
+                if brief
+                else "Phase 1 证据：Cymbal 探库 + map-codebase",
+                "tool_chain": self._get_combined_tool_chain(researcher_skills),
+            })
+
+        include_ui = hints.get("include_ui") or any(
+            k in task_desc.lower() for k in ["ui", "前端", "界面"]
+        )
+        if not self._role_skipped("implementer", skip_roles):
+            impl_category = "visual-engineering" if include_ui else "unspecified-high"
+            implementer_prompt = f"实现功能代码，遵循项目现有模式：{task_desc}"
+            if brief and scope:
+                implementer_prompt += f"\n\n实现范围（Cymbal Brief）: {scope}"
+            members.append({
+                "name": "implementer",
+                "role": "实现者",
+                "phase": "implement",
+                "kind": "category",
+                "category": impl_category,
+                "prompt": implementer_prompt,
+                "skills": implement_skills or ["gsd-execute-phase", "gsd-fast"],
+                "skill_purpose": "使用实现类 skills 执行编码和测试",
+                "tool_chain": self._get_combined_tool_chain(implement_skills),
+            })
+
+        if not self._role_skipped("reviewer", skip_roles):
+            members.append({
+                "name": "reviewer",
+                "role": "审查者",
+                "phase": "verify",
+                "kind": "subagent_type",
+                "subagent_type": "oracle",
+                "prompt": f"审查代码质量、安全性和最佳实践：{task_desc}",
+                "skills": verify_skills or ["gsd-code-review", "gsd-validate-phase"],
+                "skill_purpose": "使用验证类 skills 进行代码审查",
+                "tool_chain": self._get_combined_tool_chain(verify_skills),
+            })
+
+        if include_ui and not self._role_skipped("ui-reviewer", skip_roles):
+            ui_skills = ["gsd-ui-review", "gsd-ui-phase"]
+            members.append({
+                "name": "ui-reviewer",
+                "role": "UI 审查",
+                "phase": "verify",
+                "kind": "subagent_type",
+                "subagent_type": "oracle",
+                "prompt": f"审查 UI/前端变更与 Brief 范围：{task_desc}\n范围: {scope or '见 Brief'}",
+                "skills": ui_skills,
+                "skill_purpose": "UI 专项审查",
+                "tool_chain": self._get_combined_tool_chain(ui_skills),
+            })
+
+        add_debug = bool(debug_skills) and (
+            hints.get("include_debug", False) if brief else True
+        )
+        if add_debug and debug_skills and not self._role_skipped("debugger", skip_roles):
             members.append({
                 "name": "debugger",
                 "role": "调试专家",
@@ -848,29 +1101,33 @@ class TeamEngine:
                 "prompt": f"诊断和修复问题：{task_desc}",
                 "skills": debug_skills,
                 "skill_purpose": "使用调试类 skills 诊断问题",
-                "tool_chain": self._get_combined_tool_chain(debug_skills)
+                "tool_chain": self._get_combined_tool_chain(debug_skills),
             })
-        
+
+        phases = self._workflow_phases_from_members(members) if brief else ["plan", "implement", "verify"]
         config = {
             "name": team_name,
             "task": task_desc,
-            "version": "3.0",
-            "engine": "skill-aware",
+            "version": "3.2" if brief else "3.0",
+            "engine": "skill-aware+triage" if brief else "skill-aware",
             "created_at": None,
             "members": members,
             "workflow": {
-                "phases": ["plan", "implement", "verify"],
+                "phases": phases,
                 "parallel_execution": True,
                 "max_concurrent": 4,
-                "feedback_loop": True
+                "feedback_loop": True,
+                "skip_roles": sorted(skip_roles) if skip_roles else [],
             },
             "intent_analysis": {
                 "primary_skill": intent["primary_skill"],
                 "confidence": intent["confidence"],
-                "matched_skills": [s[0] for s in intent["matched_skills"][:5]]
-            }
+                "matched_skills": [s[0] for s in intent["matched_skills"][:5]],
+            },
         }
-        
+        if brief:
+            config["team_brief"] = brief
+
         return config
     
     def _get_combined_tool_chain(self, skills: List[str]) -> List[str]:
@@ -939,6 +1196,9 @@ def main():
 示例:
   python gsd-team-engine.py "实现用户认证系统"
   python gsd-team-engine.py --analyze "修复登录 bug"
+  python gsd-team-engine.py --triage --repo . "重构 team 引擎意图识别"
+  python gsd-team-engine.py --triage "任务描述" --brief-out team-brief.json
+  python gsd-team-engine.py --from-brief team-brief.json --commands
   python gsd-team-engine.py --learn "任务描述" --result success --learnings "学到的经验"
         """
     )
@@ -953,18 +1213,73 @@ def main():
     parser.add_argument("--output", "-o", help="输出文件路径")
     parser.add_argument("--commands", "-c", action="store_true", help="生成 OpenCode 命令")
     parser.add_argument("--sync-nmem", action="store_true", help="同步到 nmem")
+    parser.add_argument(
+        "--triage",
+        action="store_true",
+        help="Phase 0: Cymbal 嗅探模块/接口，生成 Team Brief（非全量罗列）",
+    )
+    parser.add_argument(
+        "--repo",
+        help="Cymbal 嗅探目标仓库根目录（默认当前目录）",
+    )
+    parser.add_argument(
+        "--from-brief",
+        metavar="FILE",
+        help="从 Team Brief JSON 生成团队配置",
+    )
+    parser.add_argument(
+        "--brief-out",
+        metavar="FILE",
+        help="保存 Team Brief 到指定 JSON 文件",
+    )
     
     args = parser.parse_args()
-    
-    if not args.task:
+
+    if not args.task and not args.from_brief:
         parser.print_help()
         sys.exit(1)
     
     engine = TeamEngine()
-    
+    triage_mod = _get_triage_module()
+
+    if args.from_brief:
+        brief_path = Path(args.from_brief).expanduser()
+        if not brief_path.is_file():
+            print(f"错误: Brief 文件不存在: {brief_path}")
+            sys.exit(1)
+        with open(brief_path, "r", encoding="utf-8") as handle:
+            brief = json.load(handle)
+        task_desc = brief.get("task") or args.task
+        if not task_desc:
+            print("错误: Brief 中缺少 task 字段")
+            sys.exit(1)
+    else:
+        brief = None
+        task_desc = args.task
+
+    if args.triage:
+        brief = engine.build_triage_brief(task_desc, args.repo)
+        triage_mod.print_triage_brief(brief)
+        if args.brief_out:
+            out_path = Path(args.brief_out).expanduser()
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as handle:
+                json.dump(brief, handle, indent=2, ensure_ascii=False)
+            print(f"\nTeam Brief 已保存: {out_path}")
+        elif not args.from_brief and not args.generate:
+            default_brief = WORKSPACE / "team-brief.json"
+            WORKSPACE.mkdir(parents=True, exist_ok=True)
+            with open(default_brief, "w", encoding="utf-8") as handle:
+                json.dump(brief, handle, indent=2, ensure_ascii=False)
+            print(f"\nTeam Brief 已保存: {default_brief}")
+        if not args.from_brief and not args.generate and not args.commands:
+            if not args.brief_out:
+                print("\n生成团队: python3 gsd-team-engine.py --from-brief team-brief.json --commands")
+            return
+
     # 分析模式
     if args.analyze:
-        analysis = engine.analyze_task(args.task)
+        analysis = engine.analyze_task(task_desc)
         engine.print_analysis(analysis)
         return
     
@@ -975,10 +1290,10 @@ def main():
             sys.exit(1)
         
         # 生成配置（用于 nmem 同步）
-        config = engine.generate_team(args.task, args.name)
+        config = engine.generate_team(task_desc, args.name, brief=brief)
         
         result = engine.feedback_loop.record_execution(
-            task=args.task,
+            task=task_desc,
             skills_used=[],
             result=args.result,
             learnings=args.learnings,
@@ -999,11 +1314,11 @@ def main():
             sys.exit(1)
         
         # 生成配置
-        config = engine.generate_team(args.task, args.name)
+        config = engine.generate_team(task_desc, args.name, brief=brief)
         
         # 同步到 nmem
         thread_id = nmem.create_task_thread(
-            args.task, config, "pending", "任务已创建，等待执行"
+            task_desc, config, "pending", "任务已创建，等待执行"
         )
         
         if thread_id:
@@ -1015,11 +1330,15 @@ def main():
         return
     
     # 生成团队配置
-    config = engine.generate_team(args.task, args.name)
+    if not brief and args.triage is False and args.from_brief is None:
+        brief = None
+    config = engine.generate_team(task_desc, args.name, brief=brief)
     
     # 先展示意图分析，再展示团队摘要（与 --analyze 输出一致）
-    analysis = engine.analyze_task(args.task)
+    analysis = engine.analyze_task(task_desc)
     engine.print_analysis(analysis)
+    if brief:
+        triage_mod.print_triage_brief(brief)
     print_team_summary(config, analysis=analysis)
     
     # 保存配置
@@ -1068,6 +1387,9 @@ def print_team_summary(config: Dict, analysis: Dict = None):
     
     print("-" * 70)
     print(f"  总计: {len(config['members'])} 个成员")
+    skip_roles = config.get("workflow", {}).get("skip_roles") or []
+    if skip_roles:
+        print(f"  跳过角色: {', '.join(skip_roles)}")
     print(f"  匹配 Skills: {', '.join(config['intent_analysis']['matched_skills'][:5])}")
     print("=" * 70)
 

@@ -1,7 +1,7 @@
 ---
 name: "gsd-add-todo"
 description: "Capture idea or task as todo from current conversation context"
-tags: [task, todo, capture, idea]
+tags: [todo, task-capture, idea-capture]
 triggers:
   - 添加待办
   - 记录想法

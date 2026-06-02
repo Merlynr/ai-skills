@@ -1,7 +1,7 @@
 ---
 name: "gsd-list-workspaces"
 description: "List active GSD workspaces and their status"
-tags: [workspace, list, status]
+tags: [workspace-list, workspace-status]
 triggers:
   - 列出工作区
   - 工作区列表

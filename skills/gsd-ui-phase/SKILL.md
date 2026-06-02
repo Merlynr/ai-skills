@@ -1,7 +1,7 @@
 ---
 name: "gsd-ui-phase"
 description: "Generate UI design contract (UI-SPEC.md) for frontend phases"
-tags: [ui, design, frontend, spec]
+tags: [ui-design, frontend-spec, ui-spec]
 triggers:
   - UI 设计
   - 界面设计

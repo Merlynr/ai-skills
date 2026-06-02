@@ -1,12 +1,12 @@
 ---
 name: "gsd-settings"
 description: "Configure GSD workflow toggles and model profile"
-tags: [utility, settings, config, configure]
+tags: [workflow-settings, model-profile, toggle-config]
 triggers:
-  - 设置
-  - 配置
+  - GSD 设置
   - settings
-  - 工作流配置
+  - 模型配置
+  - 工作流开关
 tool_chain: [gsd-settings]
 
 metadata:

@@ -1,9 +1,10 @@
 ---
 name: "gsd-docs-update"
 description: "Generate or update project documentation verified against the codebase"
-tags: [docs, documentation, update]
+tags: [documentation, docs-update, doc-maintenance]
 triggers:
   - 更新文档
+  - 写文档
   - 生成文档
   - docs update
   - 文档维护

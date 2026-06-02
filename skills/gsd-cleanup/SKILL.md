@@ -1,7 +1,7 @@
 ---
 name: "gsd-cleanup"
 description: "Archive accumulated phase directories from completed milestones"
-tags: [utility, cleanup, archive, maintenance]
+tags: [archive-phases, milestone-cleanup, housekeeping]
 triggers:
   - 清理
   - 归档

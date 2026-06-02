@@ -1,7 +1,7 @@
 ---
 name: "gsd-autonomous"
 description: "Run all remaining phases autonomously — discuss→plan→execute per phase"
-tags: [execute, autonomous, batch, automated]
+tags: [autonomous, batch-execution, multi-phase]
 triggers:
   - 自动执行
   - 自主执行

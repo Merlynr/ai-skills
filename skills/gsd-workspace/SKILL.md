@@ -1,7 +1,7 @@
 ---
 name: gsd-workspace
 description: "Manage GSD workspaces — create, list, or remove isolated workspace environments"
-tags: [workspace, manage, isolate]
+tags: [workspace-manage, isolated-environment]
 triggers:
   - 管理工作区
   - workspace

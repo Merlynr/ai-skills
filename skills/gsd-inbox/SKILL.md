@@ -9,7 +9,7 @@ allowed-tools:
   - Grep
   - Glob
   - AskUserQuestion
-tags: [utility, inbox, triage, github]
+tags: [github-inbox, issue-triage, pr-triage]
 triggers:
   - 收件箱
   - 分类

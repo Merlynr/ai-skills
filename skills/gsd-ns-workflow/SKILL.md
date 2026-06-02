@@ -1,10 +1,11 @@
 ---
 name: gsd-ns-workflow
 description: "workflow | discuss plan execute verify phase progress"
-tags: [workflow, phase, progress]
+tags: [gsd-workflow, phase-progress, workflow-commands]
 triggers:
-  - 工作流
   - ns workflow
+  - gsd ns workflow
+  - GSD 工作流命令
 tool_chain: [gsd-ns-workflow]
 allowed-tools:
   - Read

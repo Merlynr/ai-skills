@@ -1,7 +1,7 @@
 ---
 name: "gsd-do"
 description: "Route freeform text to the right GSD command automatically"
-tags: [utility, route, dispatch, auto]
+tags: [intent-routing, auto-dispatch, command-router]
 triggers:
   - 自动路由
   - 智能分发

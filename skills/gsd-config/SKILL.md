@@ -1,11 +1,12 @@
 ---
 name: gsd-config
 description: "Configure GSD settings — workflow toggles, advanced knobs, integrations, and model profile"
-tags: [config, settings, workflow]
+tags: [gsd-config, workflow-config, integration-config]
 triggers:
-  - 配置
+  - gsd 配置
   - 工作流配置
-  - config
+  - 配置工作流
+  - gsd config
 tool_chain: [gsd-config]
 argument-hint: "[--advanced | --integrations | --profile <name>]"
 allowed-tools:

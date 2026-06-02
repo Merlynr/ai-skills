@@ -1,9 +1,10 @@
 ---
 name: "gsd-reapply-patches"
 description: "Reapply local modifications after a GSD update"
-tags: [utility, patch, reapply, restore]
+tags: [patch-restore, upgrade-recovery, local-customization]
 triggers:
   - 重新应用补丁
+  - 恢复补丁
   - 恢复修改
   - reapply patches
 tool_chain: [gsd-reapply-patches]

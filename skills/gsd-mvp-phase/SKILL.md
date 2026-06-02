@@ -10,7 +10,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
-tags: [planning, mvp, vertical-slice]
+tags: [mvp, vertical-slice, user-story]
 triggers:
   - MVP 切片
   - 最小可行

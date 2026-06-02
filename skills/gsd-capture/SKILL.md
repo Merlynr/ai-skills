@@ -10,7 +10,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
-tags: [utility, capture, idea, task]
+tags: [capture, ideation, task-intake]
 triggers:
   - 捕获想法
   - 记录任务

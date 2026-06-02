@@ -1,7 +1,7 @@
 ---
 name: "gsd-verify-work"
 description: "Validate built features through conversational UAT"
-tags: [review, verify, uat, testing]
+tags: [uat, acceptance-testing, conversational-verify]
 triggers:
   - 验证工作
   - UAT 验证

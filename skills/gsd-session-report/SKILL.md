@@ -1,7 +1,7 @@
 ---
 name: "gsd-session-report"
 description: "Generate a session report with token usage estimates, work summary, and outcomes"
-tags: [docs, report, session, summary]
+tags: [session-report, work-summary]
 triggers:
   - 会话报告
   - session report

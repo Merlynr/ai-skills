@@ -11,7 +11,7 @@ allowed-tools:
   - Glob
   - Agent
   - AskUserQuestion
-tags: [review, audit, fix, pipeline]
+tags: [audit-fix, auto-remediation, fix-pipeline]
 triggers:
   - 审计修复
   - 自动修复

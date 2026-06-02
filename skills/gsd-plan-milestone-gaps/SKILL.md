@@ -1,7 +1,7 @@
 ---
 name: "gsd-plan-milestone-gaps"
 description: "Create phases to close all gaps identified by milestone audit"
-tags: [phase, gaps, milestone, closure]
+tags: [milestone-gaps, gap-closure]
 triggers:
   - 规划缺口
   - 关闭缺口

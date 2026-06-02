@@ -1,7 +1,7 @@
 ---
 name: "gsd-add-tests"
 description: "Generate tests for a completed phase based on UAT criteria and implementation"
-tags: [testing, unit-test, integration-test, uat, quality]
+tags: [testing, unit-test, integration-test, test-generation]
 triggers:
   - 添加测试
   - 写测试

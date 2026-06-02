@@ -1,7 +1,7 @@
 ---
 name: "gsd-plan-phase"
 description: "Create detailed phase plan (PLAN.md) with verification loop"
-tags: [planning, plan, phase, architecture]
+tags: [planning, planning-phase, architecture, roadmap]
 triggers:
   - 创建计划
   - 规划阶段

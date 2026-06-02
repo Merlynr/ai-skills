@@ -1,7 +1,7 @@
 ---
 name: "gsd-pause-work"
 description: "Create context handoff when pausing work mid-phase"
-tags: [utility, pause, handoff, context]
+tags: [handoff, pause-session, context-save]
 triggers:
   - 暂停工作
   - 上下文交接

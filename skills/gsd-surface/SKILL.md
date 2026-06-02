@@ -1,7 +1,7 @@
 ---
 name: gsd-surface
 description: "Toggle which skills are surfaced — apply a profile, list, or disable a cluster without reinstall"
-tags: [surface, skills, toggle]
+tags: [skill-surface, profile-toggle]
 triggers:
   - 切换技能
   - surface skills

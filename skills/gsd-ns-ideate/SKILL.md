@@ -1,7 +1,7 @@
 ---
 name: gsd-ns-ideate
 description: "exploration capture | explore sketch spike spec capture"
-tags: [ideate, explore, capture]
+tags: [ideation, explore-capture, sketch-spike]
 triggers:
   - 创意
   - 探索捕获

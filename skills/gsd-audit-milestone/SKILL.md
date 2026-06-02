@@ -1,7 +1,7 @@
 ---
 name: "gsd-audit-milestone"
 description: "Audit milestone completion against original intent before archiving"
-tags: [review, audit, milestone]
+tags: [milestone-audit, completion-audit]
 triggers:
   - 里程碑审计
   - milestone audit

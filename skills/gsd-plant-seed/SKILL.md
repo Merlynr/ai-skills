@@ -1,7 +1,7 @@
 ---
 name: "gsd-plant-seed"
 description: "Capture a forward-looking idea with trigger conditions — surfaces automatically at the right milestone"
-tags: [task, seed, idea, future]
+tags: [seed-idea, future-trigger, forward-looking]
 triggers:
   - 播种想法
   - 未来计划

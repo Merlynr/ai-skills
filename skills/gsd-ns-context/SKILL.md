@@ -1,7 +1,7 @@
 ---
 name: gsd-ns-context
 description: "codebase intelligence | map graphify docs learnings"
-tags: [context, codebase, intelligence]
+tags: [codebase-intelligence, context-map, 代码库]
 triggers:
   - 上下文
   - 代码库情报

@@ -15,11 +15,11 @@ metadata:
 
 ## 核心特性
 
-  - **意图识别** - 自动分析任务意图，匹配最合适的 Skills
-  - **动态加载** - 根据任务阶段动态加载对应 Skills
-  - **工具链串联** - 自动组合 Skills 的工具链
-  - **反馈循环** - 记录执行结果，持续优化 Skills
-  - **nmem 同步** - 自动同步任务结果到 Nowledge Mem
+- **意图识别** - 自动分析任务意图，匹配最合适的 Skills
+- **动态加载** - 根据任务阶段动态加载对应 Skills
+- **工具链串联** - 自动组合 Skills 的工具链
+- **反馈循环** - 记录执行结果，持续优化 Skills
+- **nmem 同步** - 自动同步任务结果到 Nowledge Mem
 
 ## 使用方式
 
@@ -39,9 +39,9 @@ metadata:
 
 ### 触发条件
 
-  - 用户说"组建团队"、"生成 team"、"多人协作"
-  - **L 级**复杂任务（见上表）
-  - 用户想要并行执行多个 agent
+- 用户说"组建团队"、"生成 team"、"多人协作"
+- **L 级**复杂任务（见上表）
+- 用户想要并行执行多个 agent
 
 ### 输入格式
 
@@ -50,9 +50,9 @@ $gsd-team 任务描述
 ```
 
 示例：
-  - `$gsd-team 实现用户认证系统`
-  - `$gsd-team 重构数据库层，需要支持 IPv6`
-  - `$gsd-team 修复登录 bug 并添加单元测试`
+- `$gsd-team 实现用户认证系统`
+- `$gsd-team 重构数据库层，需要支持 IPv6`
+- `$gsd-team 修复登录 bug 并添加单元测试`
 
 ## 执行流程
 
@@ -71,30 +71,94 @@ $gsd-team 任务描述
 运行引擎并**把完整终端输出贴给用户**（含主要意图、置信度/回退说明、Top 匹配 skills）：
 
 ```bash
-# Windows（skillshare 在 %APPDATA%\skillshare）
-python "%APPDATA%\skillshare\script\gsd-team-engine.py" --analyze "任务描述"
-
-# Linux / macOS
 python3 ~/.config/skillshare/script/gsd-team-engine.py --analyze "任务描述"
 ```
 
-仅 `--analyze` 时输出示例：
+### Step 2.5: Phase 0 Cymbal 研判（L 级推荐，非全量罗列）
 
-```
-======================================================================
-  任务: 实现用户认证系统
-  主要意图: gsd-execute-phase
-  置信度: 2.0
-======================================================================
+在生成团队之前，用 **Cymbal 嗅探**任务相关的模块与接口，再结合 skill 短名单形成 **Team Brief**。  
+**禁止**把全库模块/接口/skill 列表直接喂给 AI。
 
-  意图分析:
-----------------------------------------------------------------------
-  1. gsd-execute-phase (分数: 2.0)
-     描述: ...
-----------------------------------------------------------------------
+```bash
+# 在项目仓库根目录执行（或 --repo 指定路径）
+cd /path/to/your-project
+python3 ~/.config/skillshare/script/gsd-team-engine.py --triage --repo . "重构 team 引擎意图识别"
+
+# 保存 Brief 供确认
+python3 ~/.config/skillshare/script/gsd-team-engine.py --triage "任务描述" --brief-out team-brief.json
 ```
 
-若跳过本步直接生成团队配置，默认命令也会先打印同一段「意图分析」，再打印团队摘要。
+Brief 包含：
+- **需求要点**（从任务拆分）
+- **Cymbal 检索词** → **相关模块**（目录级，≤8）→ **相关接口/符号**（≤12）
+- **Skill 短名单**（意图引擎 Top N，非全库）
+- **triage-lead prompt**（给研判负责人，基于 Brief 安排成员与 skills）
+- **persist_*（写回约定，triage-lead 填写）** → 交给 Merlynr Phase 4.5 执行
+
+#### Brief 写回与裁减字段（引擎自动推导，可覆写）
+
+Team Brief（`team-brief.json`）字段：
+
+```json
+{
+  "dispatch_hints": {
+    "skip_roles": ["implementer", "architect"],
+    "include_debug": true,
+    "scope_summary": "modules/ISMS/flowcollect/"
+  },
+  "persist_target": "modules/ISMS/flowcollect/AGENTS.md",
+  "persist_grade": "L",
+  "persist_sections": ["Recent Changes", "Performance Notes", "Decisions", "Open Questions"]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `dispatch_hints.skip_roles` | 生成团队时**不创建**的成员（见下表） |
+| `persist_target` | 主模块 `AGENTS.md`；默认由 `evidence.modules[0]` 推导 |
+| `persist_grade` | `M` 或 `L` |
+| `persist_sections` | Phase 4.5 写回章节 |
+
+**可 skip 的角色名**（与 `generate_team()` 一致）：
+
+`architect` | `researcher` | `implementer` | `reviewer` | `debugger` | `ui-reviewer`
+
+（`triage-lead` 不会被 skip）
+
+**引擎默认规则**（可在 JSON 中覆写）：
+
+| 任务类型 | 默认 `skip_roles` |
+|----------|-------------------|
+| 性能/排查且无代码改动意图 | `implementer`；常含 `architect` |
+| 文档类且无实现意图 | `implementer`, `debugger` |
+| 无 UI 信号 | `ui-reviewer` |
+
+`--from-brief` 生成团队时，`generate_team()` 读取 `skip_roles` 并调整 `workflow.phases`。
+
+triage-lead 研判输出末尾应包含：
+
+```markdown
+## Persist（Phase 4.5）
+- target: modules/.../AGENTS.md
+- grade: M | L
+- sections: Recent Changes, ...
+- 禁止写入: 未验证推测、整段对话
+```
+
+用户确认 Brief 后，再生成团队：
+
+```bash
+python3 ~/.config/skillshare/script/gsd-team-engine.py --from-brief team-brief.json --commands
+```
+
+或一步完成（嗅探 + 生成）：
+
+```bash
+python3 ~/.config/skillshare/script/gsd-team-engine.py --triage --repo . "任务描述" --commands
+```
+
+**Phase 0 成员 `triage-lead`**：读取 Brief + skill 短名单，输出最终分工（不再全库扫描）。  
+**研究员**在 Brief 存在时改为 **缺口验证**（仅对 Brief 未覆盖符号做精确 Cymbal 命令）。
 
 ### Step 3: 动态加载 Skills
 
@@ -200,6 +264,18 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py --learn "任务描述" --
 2. 创建 nmem 线程记录任务详情
 3. 将重要学习提炼为 nmem 记忆
 
+### Step 7.5: 模块 agent 写回（M/L，Merlynr Phase 4.5）
+
+团队任务结束且结论**已验证**后：
+
+1. 读取 Brief 的 `persist_target` / `persist_grade` / `persist_sections`（或 triage-lead 的 Persist 块）
+2. 按 **merlynr-dev-stack Phase 4.5** 追加到模块 `AGENTS.md`（不覆盖「维护注意点」等稳定章节）
+3. 单独 `git commit` 文档变更（若用户在版本库中工作）
+
+**性能排查类 L 任务**示例：写 `## Performance Notes` + `FlowCollectDoTaskRun` 等符号级结论，勿把 Brief 全文粘贴进 AGENTS。
+
+若 Brief 未填 `persist_target`：用 `evidence.modules[0]` 推导，例如 `modules/ISMS/flowcollect/` → `modules/ISMS/flowcollect/AGENTS.md`。
+
 ### Step 8: 同步任务到 nmem
 
 如果需要提前将任务同步到 nmem：
@@ -236,6 +312,8 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 └─────────────────────────────────────────────────┘
     ↓
 记录学习 + nmem 同步
+    ↓
+模块 AGENTS 写回（Step 7.5 / Merlynr Phase 4.5）
 ```
 
 ## 执行模式
@@ -264,6 +342,16 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --commands
 # 仅生成配置，不执行
 python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --generate
 ```
+
+## 与 Merlynr Dev Stack 的关系
+
+| 问题 | 答案 |
+|------|------|
+| 谁先谁后？ | 开任务先 **merlynr-dev-stack** 分级；L 级 Phase 3 才进 **gsd-team** |
+| 谁写模块 AGENTS？ | **merlynr Phase 4.5** 定规范；gsd-team Brief 只标 `persist_target` |
+| M 级用 team 吗？ | 默认否；用 merlynr + `gsd-quick`；组 team 时仍走 Step 7.5 写回 |
+
+详见 [merlynr-dev-stack/SKILL.md](../merlynr-dev-stack/SKILL.md)。
 
 ## 注意事项
 
@@ -304,15 +392,15 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 **时间**: {timestamp}
 
 ## 团队配置
-  - 引擎: skill-aware
-  - 成员数: {members_count}
-  - 主要意图: {primary_skill}
+- 引擎: skill-aware
+- 成员数: {members_count}
+- 主要意图: {primary_skill}
 
 ## 使用的 Skills
-  - 架构师: gsd-discuss-phase, gsd-spec-phase, gsd-plan-phase
-  - 研究员: gsd-map-codebase, gsd-explore
-  - 实现者: gsd-execute-phase, gsd-fast
-  - 审查者: gsd-code-review, gsd-validate-phase
+- 架构师: gsd-discuss-phase, gsd-spec-phase, gsd-plan-phase
+- 研究员: gsd-map-codebase, gsd-explore
+- 实现者: gsd-execute-phase, gsd-fast
+- 审查者: gsd-code-review, gsd-validate-phase
 
 ## 学习记录
 {learnings}
@@ -320,9 +408,9 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 
 #### 记忆标签
 
-  - `team-task` - 团队任务
-  - `success` - 成功任务
-  - `{skill-name}` - 使用的 Skills
+- `team-task` - 团队任务
+- `success` - 成功任务
+- `{skill-name}` - 使用的 Skills
 
 ## 相关命令
 

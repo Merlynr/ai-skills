@@ -1,7 +1,7 @@
 ---
 name: gsd-phase
 description: "CRUD for phases in ROADMAP.md — add, insert, remove, or edit phases"
-tags: [phase, crud, roadmap]
+tags: [phase-crud, roadmap-management]
 triggers:
   - 阶段管理
   - CRUD 阶段

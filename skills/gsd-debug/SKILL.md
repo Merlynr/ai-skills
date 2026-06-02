@@ -1,7 +1,7 @@
 ---
 name: "gsd-debug"
 description: "Systematic debugging with persistent state across context resets"
-tags: [debug, troubleshoot, fix, problem]
+tags: [debugging, troubleshooting, root-cause]
 triggers:
   - 调试
   - 排错

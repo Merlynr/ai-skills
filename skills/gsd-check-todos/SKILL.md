@@ -1,7 +1,7 @@
 ---
 name: "gsd-check-todos"
 description: "List pending todos and select one to work on"
-tags: [task, todo, list, check]
+tags: [todo-list, task-triage]
 triggers:
   - 查看待办
   - 待办列表

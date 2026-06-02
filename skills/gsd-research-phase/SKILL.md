@@ -1,7 +1,7 @@
 ---
 name: "gsd-research-phase"
 description: "Research how to implement a phase (standalone - usually use /gsd-plan-phase instead)"
-tags: [research, planning, investigation]
+tags: [research, investigation, technical-research]
 triggers:
   - 研究阶段
   - 调研

@@ -1,7 +1,7 @@
 ---
 name: "gsd-set-profile"
 description: "Switch model profile for GSD agents (quality/balanced/budget/inherit)"
-tags: [utility, profile, model, switch]
+tags: [model-profile, quality-tier, budget-profile]
 triggers:
   - 设置配置
   - 切换模型

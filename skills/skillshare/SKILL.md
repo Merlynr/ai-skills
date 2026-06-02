@@ -13,6 +13,13 @@ description: |
   agents (single .md files synced to agent-capable targets like Claude, Cursor,
   Augment, OpenCode) via positional `agents` filter or `--kind agent`, plus
   `.agentignore` and `enable`/`disable` for per-agent toggles.
+tags: [skillshare, skills-sync, agent-sync, skills-management]
+triggers:
+  - skillshare
+  - skillshare sync
+  - 同步 skill
+  - skills 管理
+tool_chain: [skillshare]
 argument-hint: "[command] [target] [--json] [--dry-run] [-p|-g]"
 metadata:
   version: v0.20.2

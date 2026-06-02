@@ -14,7 +14,7 @@ allowed-tools:
   - WebFetch
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-tags: [utility, spike, explore, validate]
+tags: [technical-spike, feasibility, exploratory]
 triggers:
   - 技术验证
   - 探索

@@ -1,7 +1,7 @@
 ---
 name: "gsd-stats"
 description: "Display project statistics — phases, plans, requirements, git metrics, and timeline"
-tags: [project, stats, statistics, metrics]
+tags: [project-metrics, statistics, timeline]
 triggers:
   - 项目统计
   - 统计数据

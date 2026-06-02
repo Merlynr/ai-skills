@@ -1,7 +1,7 @@
 ---
 name: "gsd-ship"
 description: "Create PR, run review, and prepare for merge after verification passes"
-tags: [utility, ship, pr, merge, release]
+tags: [release, pull-request, merge-ready]
 triggers:
   - 发布
   - 创建 PR

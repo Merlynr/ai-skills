@@ -1,7 +1,7 @@
 ---
 name: "gsd-analyze-dependencies"
 description: "Analyze phase dependencies and suggest Depends on entries for ROADMAP.md"
-tags: [planning, dependencies, analysis]
+tags: [planning, dependencies, dependency-graph]
 triggers:
   - 分析依赖
   - 依赖关系

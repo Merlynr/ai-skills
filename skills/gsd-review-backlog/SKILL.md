@@ -1,7 +1,7 @@
 ---
 name: "gsd-review-backlog"
 description: "Review and promote backlog items to active milestone"
-tags: [utility, backlog, review, promote]
+tags: [backlog-grooming, backlog-promotion]
 triggers:
   - 审查待办
   - 提升待办

@@ -1,7 +1,7 @@
 ---
 name: "gsd-resume-work"
 description: "Resume work from previous session with full context restoration"
-tags: [utility, resume, restore, continue]
+tags: [handoff-restore, resume-session, context-restore]
 triggers:
   - 恢复工作
   - 继续工作

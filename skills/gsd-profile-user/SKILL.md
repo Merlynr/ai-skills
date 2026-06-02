@@ -1,7 +1,7 @@
 ---
 name: "gsd-profile-user"
 description: "Generate developer behavioral profile and create Claude-discoverable artifacts"
-tags: [utility, profile, user, behavior]
+tags: [developer-profile, behavior-analysis]
 triggers:
   - 用户画像
   - 行为分析

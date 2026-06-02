@@ -11,7 +11,7 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - Agent
-tags: [docs, ingest, import, bootstrap]
+tags: [doc-ingest, planning-bootstrap, adr-import]
 triggers:
   - 导入文档
   - 初始化文档

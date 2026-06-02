@@ -1,7 +1,7 @@
 ---
 name: "gsd-new-project"
 description: "Initialize a new project with deep context gathering and PROJECT.md"
-tags: [project, initialize, setup, new]
+tags: [project-init, bootstrap, roadmap-create]
 triggers:
   - 新建项目
   - 初始化项目

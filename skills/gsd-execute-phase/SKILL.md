@@ -1,7 +1,7 @@
 ---
 name: "gsd-execute-phase"
 description: "Execute all plans in a phase with wave-based parallelization"
-tags: [execute, implement, code, development]
+tags: [implementation, execute-phase, development, coding]
 triggers:
   - 执行阶段
   - 实现功能

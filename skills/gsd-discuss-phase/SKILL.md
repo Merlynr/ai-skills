@@ -1,7 +1,7 @@
 ---
 name: "gsd-discuss-phase"
 description: "Gather phase context through adaptive questioning before planning. Use --auto to skip interactive questions (the agent picks recommended defaults). Use --chain for interactive discuss followed by automatic plan+execute. Use --power for bulk question generation into a file-based UI (answer at your own pace)."
-tags: [planning, discussion, requirements, context]
+tags: [planning, discussion, requirements, discuss]
 triggers:
   - 讨论阶段
   - 需求讨论

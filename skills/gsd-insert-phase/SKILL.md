@@ -1,7 +1,7 @@
 ---
 name: "gsd-insert-phase"
 description: "Insert urgent work as decimal phase (e.g., 72.1) between existing phases"
-tags: [phase, insert, urgent, priority]
+tags: [phase-insert, urgent-phase, decimal-phase]
 triggers:
   - 插入阶段
   - 紧急任务

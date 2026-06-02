@@ -9,7 +9,7 @@ allowed-tools:
   - Grep
   - Write
   - Agent
-tags: [review, code-review, quality, security]
+tags: [code-review, quality-gate, security-review]
 triggers:
   - 代码审查
   - code review

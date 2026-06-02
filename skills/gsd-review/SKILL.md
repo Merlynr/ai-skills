@@ -1,7 +1,7 @@
 ---
 name: "gsd-review"
 description: "Request cross-AI peer review of phase plans from external AI CLIs"
-tags: [review, peer-review, cross-ai]
+tags: [peer-review, cross-ai-review, external-review]
 triggers:
   - 同行审查
   - 外部审查

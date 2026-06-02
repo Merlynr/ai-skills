@@ -1,7 +1,7 @@
 ---
 name: "gsd-next"
 description: "Automatically advance to the next logical step in the GSD workflow"
-tags: [utility, next, advance, workflow]
+tags: [workflow-advance, next-step]
 triggers:
   - 下一步
   - 继续

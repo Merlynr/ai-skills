@@ -1,7 +1,7 @@
 ---
 name: "gsd-ui-review"
 description: "Retroactive 6-pillar visual audit of implemented frontend code"
-tags: [ui, review, visual, audit]
+tags: [ui-audit, visual-review, design-review]
 triggers:
   - UI 审查
   - 界面审查

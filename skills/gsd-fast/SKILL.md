@@ -1,7 +1,7 @@
 ---
 name: "gsd-fast"
 description: "Execute a trivial task inline — no subagents, no planning overhead"
-tags: [execute, fast, trivial, quick]
+tags: [fast-path, trivial-task, inline-execution]
 triggers:
   - 快速执行
   - 简单任务

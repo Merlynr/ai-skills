@@ -49,9 +49,14 @@ Merlynr Dev Stack 的工具分工。GSD 更新不影响本文件。
 
 | 时机 | 方式 |
 |------|------|
-| 会话结束（>30s 有结论） | `nmem m add/update` 或 MCP memory_add |
+| 会话结束（>30s 有结论） | `distill-memory` → `nmem m add/update` 或 MCP memory_add |
+| **M 级任务完成**（有结论） | Phase 4.5 模块 agent **必须**；nmem **建议** ≥1 条（排障/性能/决策） |
+| **L 级任务完成** | Phase 4.5 **必须** + `distill-memory` **必须** ≥1 条 |
 | 里程碑/架构决策 | `distill-memory` |
 | GSD 阶段完成 | `gsd-extract-learnings` |
+| gsd-team 团队任务 | 执行 agent 收尾 `--learn`（可选）；nmem 仍走 `distill-memory` |
+
+写入由 Agent 按 skill 执行；**不会**因改代码或 commit 自动入库。
 
 **UTF-8 安全**（Windows）：
 

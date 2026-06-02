@@ -11,7 +11,7 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - Agent
-tags: [utility, import, ingest, external]
+tags: [external-plan-import, conflict-detection]
 triggers:
   - 导入
   - 外部导入

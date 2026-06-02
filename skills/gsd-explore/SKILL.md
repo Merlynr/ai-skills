@@ -9,7 +9,7 @@ allowed-tools:
   - Glob
   - Agent
   - AskUserQuestion
-tags: [utility, explore, ideate, socratic]
+tags: [socratic-ideation, brainstorm, idea-routing]
 triggers:
   - 探索
   - 创意

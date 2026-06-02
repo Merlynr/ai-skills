@@ -1,7 +1,7 @@
 ---
 name: gsd-ultraplan-phase
 description: "[BETA] Offload plan phase to Claude Code's ultraplan cloud; review in browser and import back."
-tags: [plan, ultraplan, cloud]
+tags: [ultraplan, cloud-planning, planning]
 triggers:
   - 云端计划
   - ultraplan

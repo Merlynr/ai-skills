@@ -1,7 +1,7 @@
 ---
 name: "gsd-forensics"
 description: "Post-mortem investigation for failed GSD workflows — analyzes git history, artifacts, and state to diagnose what went wrong"
-tags: [debug, forensics, post-mortem, analysis]
+tags: [post-mortem, workflow-forensics, failure-analysis]
 triggers:
   - 事后分析
   - 故障分析

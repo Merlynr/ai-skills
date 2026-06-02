@@ -14,7 +14,7 @@ allowed-tools:
   - WebFetch
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
-tags: [utility, sketch, ui, design, mockup]
+tags: [ui-sketch, mockup, html-prototype]
 triggers:
   - 草图
   - UI 草图

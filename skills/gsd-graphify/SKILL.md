@@ -5,7 +5,7 @@ argument-hint: "[build|query <term>|status|diff]"
 allowed-tools:
   - Read
   - Bash
-tags: [utility, graph, knowledge, analyze]
+tags: [knowledge-graph, codebase-graph, graph-query]
 triggers:
   - 知识图谱
   - 构建图谱

@@ -1,7 +1,7 @@
 ---
 name: "gsd-add-phase"
 description: "Add phase to end of current milestone in roadmap"
-tags: [phase, add, roadmap]
+tags: [phase-add, roadmap-edit]
 triggers:
   - 添加阶段
   - 新增阶段

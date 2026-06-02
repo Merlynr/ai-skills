@@ -1,7 +1,7 @@
 ---
 name: "gsd-workstreams"
 description: "Manage parallel workstreams — list, create, switch, status, progress, complete, and resume"
-tags: [utility, workstream, parallel, manage]
+tags: [parallel-workstream, multi-track, workstream-manage]
 triggers:
   - 管理工作流
   - 并行工作

@@ -1,7 +1,7 @@
 ---
 name: "gsd-list-phase-assumptions"
 description: "Surface the agent's assumptions about a phase approach before planning"
-tags: [planning, assumptions, analysis]
+tags: [planning, assumptions, risk-analysis]
 triggers:
   - 列出假设
   - 假设分析

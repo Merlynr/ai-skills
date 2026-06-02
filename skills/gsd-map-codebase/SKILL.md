@@ -1,7 +1,7 @@
 ---
 name: "gsd-map-codebase"
 description: "Analyze codebase with parallel mapper agents to produce .planning/codebase/ documents"
-tags: [utility, codebase, map, analyze]
+tags: [codebase-map, architecture-map, 代码库]
 triggers:
   - 映射代码库
   - 分析代码

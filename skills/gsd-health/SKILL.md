@@ -1,7 +1,7 @@
 ---
 name: "gsd-health"
 description: "Diagnose planning directory health and optionally repair issues"
-tags: [utility, health, diagnose, repair]
+tags: [planning-health, integrity-check, repair]
 triggers:
   - 健康检查
   - 诊断问题

@@ -10,7 +10,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
-tags: [review, evaluation, audit]
+tags: [eval-audit, ai-evaluation, eval-coverage]
 triggers:
   - 评估审查
   - eval review

@@ -1,7 +1,7 @@
 ---
 name: "gsd-progress"
 description: "Check project progress, show context, and route to next action (execute or plan)"
-tags: [project, progress, status, check]
+tags: [progress-check, status-report, situational]
 triggers:
   - 检查进度
   - 项目进度

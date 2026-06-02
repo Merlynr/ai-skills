@@ -1,7 +1,7 @@
 ---
 name: "gsd-help"
 description: "Show available GSD commands and usage guide"
-tags: [utility, help, guide, reference]
+tags: [help, command-reference, usage-guide]
 triggers:
   - 帮助
   - 使用指南

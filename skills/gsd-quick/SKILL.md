@@ -1,7 +1,7 @@
 ---
 name: "gsd-quick"
 description: "Execute a quick task with GSD guarantees (atomic commits, state tracking) but skip optional agents"
-tags: [execute, quick, simple]
+tags: [quick-task, small-scope, guaranteed-execution]
 triggers:
   - 快速任务
   - 简单实现

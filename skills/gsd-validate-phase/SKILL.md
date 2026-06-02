@@ -1,7 +1,7 @@
 ---
 name: "gsd-validate-phase"
 description: "Retroactively audit and fill Nyquist validation gaps for a completed phase"
-tags: [review, validate, verification, audit]
+tags: [validation-gap, test-coverage, nyquist]
 triggers:
   - 验证阶段
   - 验证缺口

@@ -1,7 +1,7 @@
 ---
 name: gsd-ns-review
 description: "quality gates | code review debug audit security eval ui"
-tags: [review, quality, audit]
+tags: [quality-gate, review-cluster]
 triggers:
   - 质量审查
   - ns review

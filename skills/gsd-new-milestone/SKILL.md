@@ -1,7 +1,7 @@
 ---
 name: "gsd-new-milestone"
 description: "Start a new milestone cycle — update PROJECT.md and route to requirements"
-tags: [project, milestone, new, cycle]
+tags: [milestone-start, version-cycle]
 triggers:
   - 新建里程碑
   - 开始里程碑

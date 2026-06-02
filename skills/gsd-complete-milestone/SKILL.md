@@ -1,7 +1,7 @@
 ---
 name: "gsd-complete-milestone"
 description: "Archive completed milestone and prepare for next version"
-tags: [project, milestone, complete, archive]
+tags: [milestone-archive, milestone-complete]
 triggers:
   - 完成里程碑
   - 归档里程碑

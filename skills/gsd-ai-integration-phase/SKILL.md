@@ -1,7 +1,7 @@
 ---
 name: gsd-ai-integration-phase
 description: "Generate an AI-SPEC.md design contract for phases that involve building AI systems."
-tags: [ai, integration, planning, spec]
+tags: [ai-integration, llm-spec, eval-planning]
 triggers:
   - AI 集成
   - AI 规格

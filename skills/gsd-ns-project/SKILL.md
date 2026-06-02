@@ -1,7 +1,7 @@
 ---
 name: gsd-ns-project
 description: "project lifecycle | milestones audits summary"
-tags: [project, lifecycle, milestone]
+tags: [project-lifecycle, milestone-cycle]
 triggers:
   - 项目生命周期
   - ns project

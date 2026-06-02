@@ -1,7 +1,7 @@
 ---
 name: gsd-undo
 description: "Safe git revert. Roll back phase or plan commits using the phase manifest with dependency checks."
-tags: [undo, revert, rollback]
+tags: [git-revert, phase-rollback]
 triggers:
   - 撤销
   - 回滚

@@ -1,9 +1,10 @@
 ---
 name: "gsd-pr-branch"
 description: "Create a clean PR branch by filtering out .planning/ commits — ready for code review"
-tags: [utility, pr, branch, clean]
+tags: [pr-branch, clean-history, planning-filter]
 triggers:
   - PR 分支
+  - 拆分 PR
   - 创建分支
   - pr branch
 tool_chain: [gsd-pr-branch]

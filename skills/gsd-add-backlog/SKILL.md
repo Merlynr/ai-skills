@@ -1,7 +1,7 @@
 ---
 name: "gsd-add-backlog"
 description: "Add an idea to the backlog parking lot (999.x numbering)"
-tags: [task, backlog, idea, parking]
+tags: [backlog, parking-lot, idea-staging]
 triggers:
   - 添加到待办
   - backlog

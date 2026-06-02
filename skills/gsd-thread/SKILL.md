@@ -1,7 +1,7 @@
 ---
 name: "gsd-thread"
 description: "Manage persistent context threads for cross-session work"
-tags: [utility, thread, context, persistent]
+tags: [persistent-thread, cross-session, context-thread]
 triggers:
   - 管理线程
   - 上下文线程

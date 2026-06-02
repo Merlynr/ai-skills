@@ -1,7 +1,7 @@
 ---
 name: "gsd-secure-phase"
 description: "Retroactively verify threat mitigations for a completed phase"
-tags: [security, audit, threat, mitigation]
+tags: [security-audit, threat-model, mitigation]
 triggers:
   - 安全验证
   - 安全审计

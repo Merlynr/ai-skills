@@ -1,7 +1,7 @@
 ---
 name: "gsd-manager"
 description: "Interactive command center for managing multiple phases from one terminal"
-tags: [project, manager, command-center, interactive]
+tags: [command-center, interactive-manager]
 triggers:
   - 项目管理
   - 管理器

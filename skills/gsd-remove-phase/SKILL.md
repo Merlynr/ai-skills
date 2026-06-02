@@ -1,7 +1,7 @@
 ---
 name: "gsd-remove-phase"
 description: "Remove a future phase from roadmap and renumber subsequent phases"
-tags: [phase, remove, delete]
+tags: [phase-remove, roadmap-edit]
 triggers:
   - 删除阶段
   - 移除阶段
