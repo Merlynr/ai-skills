@@ -6,10 +6,10 @@ This file is generated from all files under .planning/codebase.
 
 - context_dir: /root/.config/skillshare
 - project_name: skillshare
-- session_mode: continue_last
+- session_mode: new
 - compile_commands: not_applicable
 - cymbal_warmup: succeeded
-- cymbal_summary: Done in 3ms — 0 indexed, 0 symbols, 13 unchanged
+- cymbal_summary: Done in 5ms — 0 indexed, 0 symbols, 13 unchanged
 
 ## Code Navigation
 
