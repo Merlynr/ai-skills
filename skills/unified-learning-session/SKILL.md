@@ -1,49 +1,37 @@
 ---
 name: unified-learning-session
-description: 统一学习会话管理 - 支持高软、C++、Rust 等多种学习类型，自动创建 Obsidian vault，集成 nmem 统计和简报生成
-tags: [study, learning, 高软, cpp, rust, 统一学习, 会话管理]
-triggers: ["学习", "开启学习", "学习计划", "今日学习", "学习完成", "学习总结"]
+description: 统一学习会话管理 - 支持任意学科（高软、C++、Rust、考研、公考等），自动创建 Obsidian vault，集成 nmem 统计和简报生成，支持对题知识点分类整理
+tags: [study, learning, 统一学习, 会话管理, 知识点]
+triggers: ["学习", "开启学习", "学习计划", "今日学习", "学习完成", "学习总结", "做题", "刷题"]
 tool_chain: ["gsd-progress", "gsd-capture", "gsd-docs-update"]
 context_injection: true
 metadata:
-  short-description: "Unified learning session management with Obsidian vault and nmem integration"
+  short-description: "Universal learning session management with knowledge point classification"
 ---
 
 # 统一学习会话管理
 
 ## 核心特性
 
-- **多学习类型** - 支持高软、C++、Rust 等多种学习
+- **通用学科** - 支持任意学习内容（高软、C++、Rust、考研、公考、语言学习等）
 - **自动创建** - 自动创建 Obsidian vault 目录结构
 - **nmem 集成** - 实时统计、学习记录、简报生成
-- **智能汇总** - 基于提问和 nmem 数据生成学习汇总
+- **知识点整理** - 对题自动提取考点，按章节分类保存
 - **计划同步** - 同步本地计划和 nmem 统计
-
-## 支持的学习类型
-
-| 类型 | 触发词 | 技能 |
-|------|--------|------|
-| 高软学习 | 高软、系统架构师、软考 | gaoruan-study-session |
-| C++ 学习 | C++、studycpp | cpp-rust-study-session |
-| Rust 学习 | Rust、rust | cpp-rust-study-session |
-| 通用学习 | 学习、学习计划 | 本 skill |
 
 ## 工作流
 
 ### Phase 1: 初始化学习环境
 
-#### 1.1 检测学习类型
+#### 1.1 确定学习类型
 
-```python
-# 根据用户输入判断学习类型
-if "高软" in user_input or "系统架构师" in user_input:
-    learning_type = "gaoruan"
-elif "C++" in user_input or "cpp" in user_input:
-    learning_type = "cpp"
-elif "Rust" in user_input:
-    learning_type = "rust"
-else:
-    learning_type = "general"
+用户输入时自动识别，支持任意学科名称：
+
+```
+用户: "开启高软学习" → learning_type = "高软"
+用户: "开启C++学习" → learning_type = "cpp"
+用户: "开启考研政治学习" → learning_type = "考研政治"
+用户: "开启学习" → 询问用户具体学科
 ```
 
 #### 1.2 检查 Obsidian vault
@@ -58,34 +46,21 @@ if [ ! -d "$HOME/obsidian-vault" ]; then
 fi
 ```
 
-#### 1.3 创建学习计划（如果不存在）
+#### 1.3 创建学习目录结构
 
-**高软学习计划**:
-```markdown
-# 系统架构师学习计划
+根据 learning_type 自动创建：
 
-## 当前进度
-- 章节: [当前章节]
-- 小节: [当前小节]
-- 批次: [当前批次]
-
-## 学习记录
-- 日期: YYYY-MM-DD
-- 状态: 进行中
 ```
-
-**C++/Rust 学习计划**:
-```markdown
-# C++/Rust 20天学习计划
-
-## 当前进度
-- Day: [当前Day]
-- 语言: C++ / Rust
-- 章节: [当前章节]
-
-## 学习记录
-- 日期: YYYY-MM-DD
-- 状态: 进行中
+20 Projects/$learning_type/
+├── 学习计划.md
+├── 学习记录/
+│   └── YYYY-MM-DD 学习记录.md
+├── 知识点/
+│   ├── 第1章-章节名.md
+│   └── 第2章-章节名.md
+└── assets/
+    └── YYYY-MM-DD/
+        └── 第N题-简述.png
 ```
 
 ### Phase 2: 开启学习会话
@@ -107,13 +82,16 @@ nmem m search "学习计划" -l $learning_type -n 10
 
 ## 基本信息
 - 日期: YYYY-MM-DD
-- 学习类型: [高软/C++/Rust]
+- 学习类型: [$learning_type]
 - 计划内容: [今日计划]
 
 ## 学习内容
 [待填写]
 
-## 疑难点/错题
+## 错题记录
+[待填写]
+
+## 对题知识点
 [待填写]
 
 ## 学习总结
@@ -126,7 +104,7 @@ nmem m search "学习计划" -l $learning_type -n 10
 # 10 Daily/YYYY-MM-DD.md
 
 ## 学习计划
-- [ ] [学习类型] 学习任务
+- [ ] [$learning_type] 学习任务
 
 ## Notes
 - 学习记录: [[20 Projects/$learning_type/学习记录/YYYY-MM-DD 学习记录.md]]
@@ -134,7 +112,20 @@ nmem m search "学习计划" -l $learning_type -n 10
 
 ### Phase 3: 学习过程
 
-#### 3.1 高软学习模式
+#### 3.1 题目处理流程
+
+无论是**错题**还是**对题**，都需要提取知识点并归档到对应章节。
+
+**处理步骤：**
+
+```
+- [ ] 记录题目到学习记录（错题/对题）
+- [ ] 从题目和选项中提取涉及的考点
+- [ ] 将考点追加到对应章节的知识点文件
+- [ ] 更新学习记录中的知识点索引
+```
+
+#### 3.2 错题记录
 
 ```markdown
 ## 错题记录
@@ -145,7 +136,8 @@ nmem m search "学习计划" -l $learning_type -n 10
 - 你的答案: [答案]
 - 正确答案: [答案]
 - 解析: [解析]
-- 错因类型: [类型]
+- 错因类型: [概念混淆/计算错误/记忆错误/审题不清]
+- 涉及考点: [[第X章-章节名#考点名称]]
 
 ## 错因归类
 | 类型 | 题号 |
@@ -154,34 +146,116 @@ nmem m search "学习计划" -l $learning_type -n 10
 | 计算错误 | 2, 4 |
 ```
 
-#### 3.2 C++/Rust 学习模式
+#### 3.3 对题记录
 
 ```markdown
-## 答疑记录
+## 对题记录
 
-### Q1: [问题]
-**解答**:
-[详细解答]
-
-### Q2: [问题]
-**解答**:
-[详细解答]
-
-## 对比学习（如有）
-| 概念 | C++ | Rust |
-|------|-----|------|
-| 内存管理 | RAII | 所有权 |
+### 第N题（章节 · 考点）
+- 题目: [题目内容]
+- 选项: [选项]
+- 正确答案: [答案]
+- 考察要点: [为什么这个选项是对的]
+- 涉及考点: [[第X章-章节名#考点名称]]
 ```
 
-#### 3.3 实时 nmem 记录
+#### 3.4 知识点提取与归档（核心功能）
+
+无论是错题还是对题，都需要从题目和选项中提取知识点，归档到对应章节。
+
+**Step 1: 提取考点**
+
+从题目和选项中识别涉及的知识点：
+- 题干中的核心概念
+- 正确选项对应的知识点
+- 干扰选项涉及的易混淆点
+- 错题的错因分析
+
+**Step 2: 归档到章节文件**
+
+将考点追加到对应章节的知识点文件：
+
+```
+20 Projects/$learning_type/知识点/第N章-章节名.md
+```
+
+**Step 3: 知识点文件格式**
+
+```markdown
+# 第N章 - 章节名
+
+## 考点1: [考点名称]
+
+### 基本概念
+[核心知识点说明]
+
+### 相关题目
+
+#### 题目1（YYYY-MM-DD，错题/对题）
+- 题目: [简述]
+- 正确选项: [选项内容]
+- 考察要点: [为什么这个选项是对的]
+- 错因分析: [仅错题，说明错误原因]
+
+### 易混淆点
+[从干扰选项中提取的易混淆概念]
+
+### 记忆口诀
+[可选，便于记忆的总结]
+
+---
+
+## 考点2: [考点名称]
+
+### 基本概念
+...
+
+### 相关题目
+...
+```
+
+**Step 4: 更新学习记录索引**
+
+在当日学习记录中记录知识点索引：
+
+```markdown
+## 知识点索引
+- 第1题 → [[第2章-操作系统#计数信号量]]
+- 第3题 → [[第3章-网络#TCP三次握手]]
+- 第5题 → [[第2章-操作系统#页式地址]]
+```
+
+**Step 5: 追加规则**
+
+- 同一考点多次出现：追加到「相关题目」，不重复创建考点
+- 同一题目涉及多个考点：分别追加到各考点
+- 错题和对题混合：统一归档，通过标签区分
+
+#### 3.5 实时 nmem 记录
 
 ```bash
-# 每次答疑/错题后，记录到 nmem
-nmem m add "问题: $question\n解答: $answer" \
-  -t "学习记录: $learning_type" \
+# 错题记录到 nmem
+nmem m add "错题: $question\n正确答案: $answer\n错因: $reason\n考点: $knowledge_point" \
+  -t "错题记录: $learning_type" \
   --unit-type learning \
   -i 0.6 \
-  -l $learning_type,study \
+  -l $learning_type,study,wrong-answer \
+  -s unified-learning
+
+# 对题记录到 nmem
+nmem m add "对题: $question\n正确答案: $answer\n考点: $knowledge_point" \
+  -t "对题记录: $learning_type" \
+  --unit-type learning \
+  -i 0.5 \
+  -l $learning_type,study,correct-answer \
+  -s unified-learning
+
+# 知识点记录到 nmem（汇总）
+nmem m add "章节: 第N章\n考点: $knowledge_point\n题目数: N" \
+  -t "知识点: $knowledge_point" \
+  --unit-type knowledge \
+  -i 0.7 \
+  -l $learning_type,knowledge-point \
   -s unified-learning
 ```
 
@@ -193,14 +267,20 @@ nmem m add "问题: $question\n解答: $answer" \
 # 学习汇总
 
 ## 今日学习内容
-- 学习类型: [类型]
+- 学习类型: [$learning_type]
 - 学习时长: [时长]
 - 完成内容: [内容]
 
-## 疑难点/错题统计
-- 总问题数: N
-- 已解决: N
-- 待深入: N
+## 错题统计
+- 总错题数: N
+- 错因分布: [概念混淆 X 题, 计算错误 Y 题]
+
+## 知识点整理
+- 新增知识点: N 个
+- 涉及章节: [章节列表]
+- 知识点列表:
+  - [[考点1]]
+  - [[考点2]]
 
 ## nmem 记录统计
 - 记忆条目: N
@@ -238,21 +318,24 @@ nmem m add "学习汇总内容" \
 ### Phase 5: nmem 简报结构
 
 ```markdown
-# [学习类型] 学习简报 YYYY-MM-DD
+# [$learning_type] 学习简报 YYYY-MM-DD
 
 ## 学习概况
 - 日期: YYYY-MM-DD
-- 学习类型: [高软/C++/Rust]
+- 学习类型: [$learning_type]
 - 学习时长: [时长]
 
 ## 学习内容
 - 完成内容: [内容]
 - 主要主题: [主题]
 
-## 疑难点/错题
-- 总问题数: N
-- 已解决: N
-- 主要问题: [问题列表]
+## 错题分析
+- 总错题数: N
+- 主要错因: [错因列表]
+
+## 知识点积累
+- 新增知识点: N 个
+- 知识点列表: [列表]
 
 ## nmem 记录统计
 - 记忆条目: N
@@ -274,6 +357,7 @@ nmem m add "学习汇总内容" \
 | 日计划 | `10 Daily/YYYY-MM-DD.md` |
 | 学习计划 | `20 Projects/$learning_type/学习计划.md` |
 | 学习记录 | `20 Projects/$learning_type/学习记录/YYYY-MM-DD 学习记录.md` |
+| **知识点文件** | `20 Projects/$learning_type/知识点/第N章-章节名.md` |
 | 截图 | `20 Projects/$learning_type/assets/YYYY-MM-DD/` |
 | 项目入口 | `20 Projects/$learning_type/$learning_type.md` |
 
@@ -281,15 +365,19 @@ nmem m add "学习汇总内容" \
 
 ### 记忆标签
 
-- `$learning_type` - 学习类型（gaoruan/cpp/rust）
+- `$learning_type` - 学习类型（用户自定义）
 - `study` - 学习记录
 - `summary` - 学习汇总
+- `wrong-answer` - 错题记录
+- `correct-answer` - 对题记录
+- `knowledge-point` - 知识点
 - `learning-plan` - 学习计划
 - `study-progress` - 学习进度
 
 ### 记忆类型
 
 - `learning` - 学习记录
+- `knowledge` - 知识点
 - `decision` - 学习决策
 - `procedure` - 学习方法
 
@@ -298,6 +386,12 @@ nmem m add "学习汇总内容" \
 ```bash
 # 查询学习统计
 nmem m search "学习记录" -l $learning_type -n 20
+
+# 查询知识点
+nmem m search "知识点" -l $learning_type,knowledge-point -n 20
+
+# 查询特定考点
+nmem m search "计数信号量" -l $learning_type,knowledge-point
 
 # 查询学习汇总
 nmem m search "学习简报" -l $learning_type -n 10
@@ -310,16 +404,22 @@ nmem m search "YYYY-MM-DD" -l $learning_type
 
 ```bash
 # 开启学习会话
-$unified-learning-session 开启今天[高软/C++/Rust]学习计划
+开启[学科]学习
 
-# 查看学习计划
-$unified-learning-session 查看学习计划
+# 记录错题
+[粘贴题目内容]
+
+# 记录对题（自动提取知识点）
+[粘贴做对的题目]
+
+# 查看知识点
+查看[学科]知识点
 
 # 结束学习会话
-$unified-learning-session 今日学习完成
+今日学习完成
 
 # 生成学习简报
-$unified-learning-session 生成学习简报
+生成学习简报
 ```
 
 ## 注意事项
@@ -327,5 +427,6 @@ $unified-learning-session 生成学习简报
 1. **Obsidian vault 路径**: 默认 `$HOME/obsidian-vault`，可配置
 2. **nmem 标签**: 使用统一的标签格式，便于查询
 3. **学习记录**: 每次学习必须生成学习记录
-4. **简报生成**: 每次学习结束必须生成 nmem 简报
-5. **计划同步**: 同步本地计划和 nmem 统计
+4. **知识点整理**: 错题和对题都必须提取知识点，归档到对应章节
+5. **简报生成**: 每次学习结束必须生成 nmem 简报
+6. **计划同步**: 同步本地计划和 nmem 统计
