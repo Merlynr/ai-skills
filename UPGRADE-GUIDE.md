@@ -170,8 +170,8 @@ rtk read ~/.config/opencode/get-shit-done/VERSION
 ### 升级方法
 
 ```bash
-# 方式 1：通过 npm 更新（如果通过 npm 安装）
-cd ~/.config/opencode && npm update
+# 方式 1：通过 npx 升级（推荐）
+npx @opengsd/gsd-core@latest
 
 # 方式 2：通过 oh-my-openagent 插件更新
 # OpenCode 会自动检测并提示更新
@@ -179,9 +179,6 @@ cd ~/.config/opencode && npm update
 # 方式 3：手动更新
 cd ~/.config/opencode/get-shit-done
 git pull origin main
-
-# 方式 4：重新安装
-npx oh-my-openagent@latest
 ```
 
 ### Skills 同步
@@ -377,7 +374,7 @@ echo "=== 2. 升级 RTK ==="
 cargo install rtk --force
 
 echo "=== 3. 升级 GSD ==="
-cd ~/.config/opencode && npm update
+npx @opengsd/gsd-core@latest
 
 echo "=== 4. 升级 nmem ==="
 npx skills add nowledge-co/community/nowledge-mem-npx-skills
@@ -495,5 +492,5 @@ cargo install rtk --force
 
 ---
 
-*最后更新：2026-05-29*
+*最后更新：2026-06-01*
 *文档路径：~/.config/skillshare/UPGRADE-GUIDE.md*
