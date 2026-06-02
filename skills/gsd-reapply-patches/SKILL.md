@@ -1,48 +1,55 @@
 ---
 name: "gsd-reapply-patches"
 description: "Reapply local modifications after a GSD update"
+tags: [utility, patch, reapply, restore]
+triggers:
+  - 重新应用补丁
+  - 恢复修改
+  - reapply patches
+tool_chain: [gsd-reapply-patches]
+
 metadata:
   short-description: "Reapply local modifications after a GSD update"
 ---
 
 <codex_skill_adapter>
 ## A. Skill Invocation
-- This skill is invoked by mentioning `$gsd-reapply-patches`.
-- Treat all user text after `$gsd-reapply-patches` as `{{GSD_ARGS}}`.
-- If no arguments are present, treat `{{GSD_ARGS}}` as empty.
+  - This skill is invoked by mentioning `$gsd-reapply-patches`.
+  - Treat all user text after `$gsd-reapply-patches` as `{{GSD_ARGS}}`.
+  - If no arguments are present, treat `{{GSD_ARGS}}` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
 GSD workflows use `AskUserQuestion` (Claude Code syntax). Translate to Codex `request_user_input`:
 
 Parameter mapping:
-- `header` → `header`
-- `question` → `question`
-- Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
-- Generate `id` from header: lowercase, replace spaces with underscores
+  - `header` → `header`
+  - `question` → `question`
+  - Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
+  - Generate `id` from header: lowercase, replace spaces with underscores
 
 Batched calls:
-- `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
+  - `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
 
 Multi-select workaround:
-- Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
+  - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
+  - When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
 
 ## C. Task() → spawn_agent Mapping
 GSD workflows use `Task(...)` (Claude Code syntax). Translate to Codex collaboration tools:
 
 Direct mapping:
-- `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
-- `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
-- `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
+  - `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
+  - `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
+  - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 
 Parallel fan-out:
-- Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
+  - Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
 
 Result parsing:
-- Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
-- `close_agent(id)` after collecting results from each agent
+  - Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
+  - `close_agent(id)` after collecting results from each agent
 </codex_skill_adapter>
 
 <purpose>
@@ -164,9 +171,9 @@ Exit.
 ## Step 2: Determine baseline for three-way comparison
 
 The quality of the merge depends on having a **pristine baseline** — the original unmodified version of each file from the pre-update GSD release. This enables three-way comparison:
-- **Pristine baseline** (original GSD file before any user edits)
-- **User's version** (backed up in `gsd-local-patches/`)
-- **New version** (freshly installed after update)
+  - **Pristine baseline** (original GSD file before any user edits)
+  - **User's version** (backed up in `gsd-local-patches/`)
+  - **New version** (freshly installed after update)
 
 Check for baseline sources in priority order:
 
@@ -224,14 +231,14 @@ For each file in `backup-meta.json`:
 ### Three-way merge (when baseline is available)
 
 Compare the three versions to isolate changes:
-- **User changes** = diff(pristine → user's version) — these are the customizations to preserve
-- **Upstream changes** = diff(pristine → new version) — these are version updates to accept
+  - **User changes** = diff(pristine → user's version) — these are the customizations to preserve
+  - **Upstream changes** = diff(pristine → new version) — these are version updates to accept
 
 **Merge rules:**
-- Sections changed only by user → apply user's version
-- Sections changed only by upstream → accept upstream version
-- Sections changed by both → flag as CONFLICT, show both, ask user
-- Sections unchanged by either → use new version (identical to all three)
+  - Sections changed only by user → apply user's version
+  - Sections changed only by upstream → accept upstream version
+  - Sections changed by both → flag as CONFLICT, show both, ask user
+  - Sections unchanged by either → use new version (identical to all three)
 
 ### Two-way merge (fallback when no baseline)
 
@@ -268,8 +275,8 @@ Each matching commit represents an intentional user modification. Use the commit
 ## Step 5: Cleanup option
 
 Ask user:
-- "Keep patch backups for reference?" → preserve `gsd-local-patches/`
-- "Clean up patch backups?" → remove `gsd-local-patches/` directory
+  - "Keep patch backups for reference?" → preserve `gsd-local-patches/`
+  - "Clean up patch backups?" → remove `gsd-local-patches/` directory
 
 ## Step 6: Report
 
@@ -288,10 +295,10 @@ Ask user:
 </process>
 
 <success_criteria>
-- [ ] All backed-up patches processed — zero files left unhandled
-- [ ] No file classified as "no custom content" or "SKIP" — every backed-up file is definitionally modified
-- [ ] Three-way merge used when pristine baseline available (git history or gsd-pristine/)
-- [ ] User modifications identified and merged into new version
-- [ ] Conflicts surfaced to user with both versions shown
-- [ ] Status reported for each file with summary of what was preserved
+  - [ ] All backed-up patches processed — zero files left unhandled
+  - [ ] No file classified as "no custom content" or "SKIP" — every backed-up file is definitionally modified
+  - [ ] Three-way merge used when pristine baseline available (git history or gsd-pristine/)
+  - [ ] User modifications identified and merged into new version
+  - [ ] Conflicts surfaced to user with both versions shown
+  - [ ] Status reported for each file with summary of what was preserved
 </success_criteria>

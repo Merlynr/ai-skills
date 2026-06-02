@@ -15,21 +15,33 @@ metadata:
 
 ## 核心特性
 
-- **意图识别** - 自动分析任务意图，匹配最合适的 Skills
-- **动态加载** - 根据任务阶段动态加载对应 Skills
-- **工具链串联** - 自动组合 Skills 的工具链
-- **反馈循环** - 记录执行结果，持续优化 Skills
-- **nmem 同步** - 自动同步任务结果到 Nowledge Mem
+  - **意图识别** - 自动分析任务意图，匹配最合适的 Skills
+  - **动态加载** - 根据任务阶段动态加载对应 Skills
+  - **工具链串联** - 自动组合 Skills 的工具链
+  - **反馈循环** - 记录执行结果，持续优化 Skills
+  - **nmem 同步** - 自动同步任务结果到 Nowledge Mem
 
 ## 使用方式
 
 当用户需要为复杂任务组建 AI 团队时使用此 skill。
 
+### 任务分级（S / M / L）
+
+与 Merlynr Dev Stack 一致。**gsd-team 仅用于 L 级**；收到任务后先分级，再决定是否继续：
+
+| 级别 | 信号 | 应走的路径 |
+|------|------|------------|
+| **S** 琐碎 | 单文件、符号明确、一处/一行修复 | **停止本 skill** → 直接改或 `gsd-fast` |
+| **M** 中等 | 2–5 文件、边界清楚 | **默认不用 team** → 本地探库 + `gsd-quick`；仅当用户明确「组建团队」时才继续 |
+| **L** 复杂 | 新功能、重构、多模块、验收模糊 | **继续 gsd-team**（完整 Plan → Implement → Verify） |
+
+分级后若判定为 S 或 M（且用户未明确要求组团队），回复用户推荐路径并**不要**运行 `--execute`。
+
 ### 触发条件
 
-- 用户说"组建团队"、"生成 team"、"多人协作"
-- 用户描述了一个需要多阶段完成的复杂任务
-- 用户想要并行执行多个 agent
+  - 用户说"组建团队"、"生成 team"、"多人协作"
+  - **L 级**复杂任务（见上表）
+  - 用户想要并行执行多个 agent
 
 ### 输入格式
 
@@ -38,19 +50,21 @@ $gsd-team 任务描述
 ```
 
 示例：
-- `$gsd-team 实现用户认证系统`
-- `$gsd-team 重构数据库层，需要支持 IPv6`
-- `$gsd-team 修复登录 bug 并添加单元测试`
+  - `$gsd-team 实现用户认证系统`
+  - `$gsd-team 重构数据库层，需要支持 IPv6`
+  - `$gsd-team 修复登录 bug 并添加单元测试`
 
 ## 执行流程
 
-### Step 1: 解析任务
+### Step 1: 解析任务与分级
 
-从用户输入中提取任务描述。如果没有提供，询问用户：
+从用户输入中提取任务描述，并按 **S / M / L** 分级（见上文表格）。如果没有提供，询问用户：
 
 ```
 请描述需要完成的任务：
 ```
+
+若判定为 **S** → 建议 `gsd-fast`；**M** 且未要求组团队 → 建议 `gsd-quick` + Cymbal/Grep；仅 **L**（或用户 insist team）进入 Step 2。
 
 ### Step 2: 意图识别（必须向用户展示）
 
@@ -139,9 +153,16 @@ python "%APPDATA%\skillshare\script\gsd-team-engine.py" "任务描述"
 task(subagent_type="oracle", load_skills=["gsd-discuss-phase", "gsd-spec-phase", "gsd-plan-phase"], 
      run_in_background=true, prompt="分析任务需求，设计系统架构：任务描述")
 
-# 研究员 - 探索代码（并行）
-task(subagent_type="explore", load_skills=["gsd-map-codebase", "gsd-explore"], 
-     run_in_background=true, prompt="探索代码库，查找相关模式：任务描述")
+# 研究员 - 探索代码（并行；Phase 1 必须 Cymbal + .planning）
+task(subagent_type="explore", load_skills=["gsd-map-codebase", "gsd-explore", "merlynr-dev-stack"],
+     run_in_background=true, prompt="""探索代码库，查找相关模式：任务描述
+
+Phase 1 探库（L 级）：
+1. 若 Cymbal 未就绪：rtk cymbal index .
+2. 已知符号：rtk cymbal investigate <symbol>；改前：rtk cymbal refs <symbol>
+3. 语义/影响面 → Cymbal；字面量/配置 → rg
+4. 架构边界 → .planning/codebase/ 与 AGENTS.md
+""")
 ```
 
 等待 Plan 阶段完成...
@@ -246,11 +267,13 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --generate
 
 ## 注意事项
 
-1. **并行执行** - Plan 阶段的成员可以并行执行
-2. **阶段依赖** - Implement 依赖 Plan 的结果，Verify 依赖 Implement 的结果
-3. **资源限制** - 最多同时运行 4 个 agent（可在 oh-my-openagent.jsonc 中配置）
-4. **用户确认** - 自动执行前需要用户确认
-5. **错误处理** - 如果某个阶段失败，会记录错误并继续执行其他阶段
+1. **仅 L 级** - S/M 任务勿组 team；M 级默认 `gsd-quick`
+2. **Plan 探库** - researcher 必须按 Phase 1 走 Cymbal（见 Step 6.1），与 `opencode_smart` 注入的 AGENTS.md 一致
+3. **并行执行** - Plan 阶段的成员可以并行执行
+4. **阶段依赖** - Implement 依赖 Plan 的结果，Verify 依赖 Implement 的结果
+5. **资源限制** - 最多同时运行 4 个 agent（OpenCode 并发配置）
+6. **用户确认** - 自动执行前需要用户确认
+7. **错误处理** - 如果某个阶段失败，会记录错误并继续执行其他阶段
 
 ## nmem 集成
 
@@ -281,15 +304,15 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 **时间**: {timestamp}
 
 ## 团队配置
-- 引擎: skill-aware
-- 成员数: {members_count}
-- 主要意图: {primary_skill}
+  - 引擎: skill-aware
+  - 成员数: {members_count}
+  - 主要意图: {primary_skill}
 
 ## 使用的 Skills
-- 架构师: gsd-discuss-phase, gsd-spec-phase, gsd-plan-phase
-- 研究员: gsd-map-codebase, gsd-explore
-- 实现者: gsd-execute-phase, gsd-fast
-- 审查者: gsd-code-review, gsd-validate-phase
+  - 架构师: gsd-discuss-phase, gsd-spec-phase, gsd-plan-phase
+  - 研究员: gsd-map-codebase, gsd-explore
+  - 实现者: gsd-execute-phase, gsd-fast
+  - 审查者: gsd-code-review, gsd-validate-phase
 
 ## 学习记录
 {learnings}
@@ -297,9 +320,9 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --sync-nme
 
 #### 记忆标签
 
-- `team-task` - 团队任务
-- `success` - 成功任务
-- `{skill-name}` - 使用的 Skills
+  - `team-task` - 团队任务
+  - `success` - 成功任务
+  - `{skill-name}` - 使用的 Skills
 
 ## 相关命令
 

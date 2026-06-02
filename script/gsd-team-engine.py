@@ -96,8 +96,14 @@ TASK_PLACEHOLDER_PATTERNS = (
     r"示例任务",
 )
 
+# 过短/过泛 tag 不参与子串匹配，避免「gsd升级」误命中 tag=gsd
+GENERIC_TAGS = frozenset({
+    "gsd", "ui", "api", "doc", "stack", "tool", "test", "dev", "mcp",
+})
+
 # 明确短语 → 本地 skill（达到 MIN_INTENT_SCORE）
 STRONG_PHRASE_RULES = (
+    (r"gsd\s*升级|升级\s*gsd|update\s*gsd|gsd-update|gsd\s*update", ("gsd-update",), 3.0),
     (r"单元测试|集成测试|测试用例|添加测试|写测试|跑测试", ("gsd-add-tests", "gsd-verify-work"), 2.0),
     (r"代码审查|code\s*review|安全审计", ("gsd-code-review", "gsd-secure-phase"), 2.0),
     (r"修复.*bug|排错|调试", ("gsd-debug", "gsd-forensics"), 2.0),
@@ -108,7 +114,52 @@ STRONG_PHRASE_RULES = (
 
 class SkillMetadata:
     """Skill 元数据解析器"""
-    
+
+    @staticmethod
+    def _parse_yaml_string_list(yaml_content: str, key: str) -> List[str]:
+        inline = re.search(rf"^{key}:\s*\[(.*?)\]\s*$", yaml_content, re.MULTILINE | re.DOTALL)
+        if inline:
+            return [
+                item.strip().strip('"\'')
+                for item in inline.group(1).split(",")
+                if item.strip()
+            ]
+
+        block = re.search(rf"^{key}:\s*\n((?:[ \t]+-\s+.+\n?)+)", yaml_content, re.MULTILINE)
+        if block:
+            return [
+                match.group(1).strip().strip('"\'')
+                for match in re.finditer(r"-\s+(.+)", block.group(1))
+            ]
+
+        return []
+
+    @staticmethod
+    def _parse_yaml_description(yaml_content: str) -> str:
+        block = re.search(
+            r"^description:\s*(>|>-|\||\|-)\s*\n((?:[ \t]+.+\n?)*)",
+            yaml_content,
+            re.MULTILINE,
+        )
+        if block:
+            lines = [
+                re.sub(r"^[ \t]+", "", line)
+                for line in block.group(2).splitlines()
+                if line.strip()
+            ]
+            return " ".join(lines).strip()
+
+        inline = re.search(
+            r'^description:\s*["\']?(.+?)["\']?\s*$',
+            yaml_content,
+            re.MULTILINE,
+        )
+        if inline:
+            value = inline.group(1).strip().strip('"\'')
+            if value not in (">", ">-", "|", "|-"):
+                return value
+        return ""
+
     @staticmethod
     def parse_skill(skill_path: Path) -> Dict:
         """解析 SKILL.md 文件，提取元数据"""
@@ -134,25 +185,10 @@ class SkillMetadata:
         if yaml_match:
             yaml_content = yaml_match.group(1)
             
-            # 提取 tags
-            tags_match = re.search(r'tags:\s*\[(.*?)\]', yaml_content)
-            if tags_match:
-                metadata["tags"] = [t.strip() for t in tags_match.group(1).split(',')]
-            
-            # 提取 triggers
-            triggers_match = re.search(r'triggers:\s*\[(.*?)\]', yaml_content)
-            if triggers_match:
-                metadata["triggers"] = [t.strip().strip('"\'') for t in triggers_match.group(1).split(',')]
-            
-            # 提取 tool_chain
-            chain_match = re.search(r'tool_chain:\s*\[(.*?)\]', yaml_content)
-            if chain_match:
-                metadata["tool_chain"] = [t.strip().strip('"\'') for t in chain_match.group(1).split(',')]
-            
-            # 提取 description
-            desc_match = re.search(r'description:\s*["\']?(.*?)["\']?\s*$', yaml_content, re.MULTILINE)
-            if desc_match:
-                metadata["description"] = desc_match.group(1)
+            metadata["tags"] = SkillMetadata._parse_yaml_string_list(yaml_content, "tags")
+            metadata["triggers"] = SkillMetadata._parse_yaml_string_list(yaml_content, "triggers")
+            metadata["tool_chain"] = SkillMetadata._parse_yaml_string_list(yaml_content, "tool_chain")
+            metadata["description"] = SkillMetadata._parse_yaml_description(yaml_content)
         
         # 提取步骤（从正文）
         steps_section = re.search(r'(?:## 步骤|## Steps|## 执行流程)\n(.*?)(?=\n##|\Z)', content, re.DOTALL)
@@ -327,16 +363,24 @@ class IntentRecognizer:
         
         return matches
     
+    def _tag_matches_task(self, tag: str, task: str) -> bool:
+        tag_l = tag.lower().strip()
+        if not tag_l:
+            return False
+        if tag_l in GENERIC_TAGS or len(tag_l) <= 3:
+            return False
+        return tag_l in task
+
     def _tag_match(self, task: str) -> List[str]:
-        """标签匹配"""
+        """标签匹配（排除过短/过泛 tag，避免 gsd 等误命中）"""
         matches = []
-        
+
         for skill_name, metadata in self.skills_cache.items():
             for tag in metadata.get("tags", []):
-                if tag.lower() in task:
+                if self._tag_matches_task(tag, task):
                     matches.append(skill_name)
                     break
-        
+
         return matches
     
     def _score_matches(
@@ -662,6 +706,22 @@ class FeedbackLoop:
         return learnings
 
 
+RESEARCHER_CYMBAL_PHASE1 = """Phase 1 探库（Merlynr / L 级，与 opencode_smart 一致）：
+1. 若 Cymbal 索引未就绪：rtk cymbal index .
+2. 已知符号优先：rtk cymbal investigate <symbol>；改前查引用：rtk cymbal refs <symbol>
+3. 语义/调用链/影响面 → Cymbal；字面量、配置、Markdown、日志 → rg / 直接读文件
+4. 项目边界与规范 → .planning/codebase/ 与 AGENTS.md
+5. Cymbal 无结果时再扩大 Grep；勿为探库全库 @Codebase
+"""
+
+
+def build_researcher_prompt(task_desc: str) -> str:
+    return (
+        f"探索代码库，查找相关模式与实现：{task_desc}\n\n"
+        f"{RESEARCHER_CYMBAL_PHASE1}"
+    )
+
+
 class TeamEngine:
     """团队引擎 - 整合所有组件"""
     
@@ -732,16 +792,22 @@ class TeamEngine:
         })
         
         # 研究员
+        researcher_skills = list(plan_skills or ["gsd-map-codebase", "gsd-explore"])
+        if (
+            "merlynr-dev-stack" not in researcher_skills
+            and "merlynr-dev-stack" in self.intent_recognizer.skills_cache
+        ):
+            researcher_skills.append("merlynr-dev-stack")
         members.append({
             "name": "researcher",
             "role": "研究员",
             "phase": "plan",
             "kind": "subagent_type",
             "subagent_type": "explore",
-            "prompt": f"探索代码库，查找相关模式和实现：{task_desc}",
-            "skills": plan_skills or ["gsd-map-codebase", "gsd-explore"],
-            "skill_purpose": "使用探索类 skills 理解现有代码",
-            "tool_chain": self._get_combined_tool_chain(plan_skills)
+            "prompt": build_researcher_prompt(task_desc),
+            "skills": researcher_skills,
+            "skill_purpose": "Phase 1 证据：Cymbal 探库 + map-codebase",
+            "tool_chain": self._get_combined_tool_chain(researcher_skills)
         })
         
         # 实现者

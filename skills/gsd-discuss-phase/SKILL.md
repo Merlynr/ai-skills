@@ -1,48 +1,57 @@
 ---
 name: "gsd-discuss-phase"
 description: "Gather phase context through adaptive questioning before planning. Use --auto to skip interactive questions (the agent picks recommended defaults). Use --chain for interactive discuss followed by automatic plan+execute. Use --power for bulk question generation into a file-based UI (answer at your own pace)."
+tags: [planning, discussion, requirements, context]
+triggers:
+  - 讨论阶段
+  - 需求讨论
+  - 收集需求
+  - discuss phase
+  - 需求分析
+tool_chain: [gsd-discuss-phase, gsd-spec-phase, gsd-plan-phase]
+
 metadata:
   short-description: "Gather phase context through adaptive questioning before planning. Use --auto to skip interactive questions (the agent picks recommended defaults). Use --chain for interactive d..."
 ---
 
 <codex_skill_adapter>
 ## A. Skill Invocation
-- This skill is invoked by mentioning `$gsd-discuss-phase`.
-- Treat all user text after `$gsd-discuss-phase` as `{{GSD_ARGS}}`.
-- If no arguments are present, treat `{{GSD_ARGS}}` as empty.
+  - This skill is invoked by mentioning `$gsd-discuss-phase`.
+  - Treat all user text after `$gsd-discuss-phase` as `{{GSD_ARGS}}`.
+  - If no arguments are present, treat `{{GSD_ARGS}}` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
 GSD workflows use `AskUserQuestion` (Claude Code syntax). Translate to Codex `request_user_input`:
 
 Parameter mapping:
-- `header` → `header`
-- `question` → `question`
-- Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
-- Generate `id` from header: lowercase, replace spaces with underscores
+  - `header` → `header`
+  - `question` → `question`
+  - Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
+  - Generate `id` from header: lowercase, replace spaces with underscores
 
 Batched calls:
-- `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
+  - `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
 
 Multi-select workaround:
-- Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
+  - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
+  - When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
 
 ## C. Task() → spawn_agent Mapping
 GSD workflows use `Task(...)` (Claude Code syntax). Translate to Codex collaboration tools:
 
 Direct mapping:
-- `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
-- `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
-- `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
+  - `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
+  - `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
+  - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 
 Parallel fan-out:
-- Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
+  - Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
 
 Result parsing:
-- Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
-- `close_agent(id)` after collecting results from each agent
+  - Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
+  - `close_agent(id)` after collecting results from each agent
 </codex_skill_adapter>
 
 <objective>
@@ -90,11 +99,11 @@ If `DISCUSS_MODE` is `"discuss"` (or unset, or any other value): Read and execut
 </process>
 
 <success_criteria>
-- Prior context loaded and applied (no re-asking decided questions)
-- Gray areas identified through intelligent analysis
-- User chose which areas to discuss
-- Each selected area explored until satisfied
-- Scope creep redirected to deferred ideas
-- CONTEXT.md captures decisions, not vague vision
-- User knows next steps
+  - Prior context loaded and applied (no re-asking decided questions)
+  - Gray areas identified through intelligent analysis
+  - User chose which areas to discuss
+  - Each selected area explored until satisfied
+  - Scope creep redirected to deferred ideas
+  - CONTEXT.md captures decisions, not vague vision
+  - User knows next steps
 </success_criteria>

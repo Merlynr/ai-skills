@@ -1,48 +1,56 @@
 ---
 name: "gsd-map-codebase"
 description: "Analyze codebase with parallel mapper agents to produce .planning/codebase/ documents"
+tags: [utility, codebase, map, analyze]
+triggers:
+  - 映射代码库
+  - 分析代码
+  - map codebase
+  - 代码结构
+tool_chain: [gsd-map-codebase]
+
 metadata:
   short-description: "Analyze codebase with parallel mapper agents to produce .planning/codebase/ documents"
 ---
 
 <codex_skill_adapter>
 ## A. Skill Invocation
-- This skill is invoked by mentioning `$gsd-map-codebase`.
-- Treat all user text after `$gsd-map-codebase` as `{{GSD_ARGS}}`.
-- If no arguments are present, treat `{{GSD_ARGS}}` as empty.
+  - This skill is invoked by mentioning `$gsd-map-codebase`.
+  - Treat all user text after `$gsd-map-codebase` as `{{GSD_ARGS}}`.
+  - If no arguments are present, treat `{{GSD_ARGS}}` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
 GSD workflows use `AskUserQuestion` (Claude Code syntax). Translate to Codex `request_user_input`:
 
 Parameter mapping:
-- `header` → `header`
-- `question` → `question`
-- Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
-- Generate `id` from header: lowercase, replace spaces with underscores
+  - `header` → `header`
+  - `question` → `question`
+  - Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
+  - Generate `id` from header: lowercase, replace spaces with underscores
 
 Batched calls:
-- `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
+  - `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
 
 Multi-select workaround:
-- Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
+  - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
+  - When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
 
 ## C. Task() → spawn_agent Mapping
 GSD workflows use `Task(...)` (Claude Code syntax). Translate to Codex collaboration tools:
 
 Direct mapping:
-- `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
-- `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
-- `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
+  - `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
+  - `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
+  - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 
 Parallel fan-out:
-- Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
+  - Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
 
 Result parsing:
-- Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
-- `close_agent(id)` after collecting results from each agent
+  - Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
+  - `close_agent(id)` after collecting results from each agent
 </codex_skill_adapter>
 
 <objective>
@@ -64,22 +72,22 @@ Focus area: {{GSD_ARGS}} (optional - if provided, tells agents to focus on speci
 Check for .planning/STATE.md - loads context if project already initialized
 
 **This command can run:**
-- Before /gsd-new-project (brownfield codebases) - creates codebase map first
-- After /gsd-new-project (greenfield codebases) - updates codebase map as code evolves
-- Anytime to refresh codebase understanding
+  - Before /gsd-new-project (brownfield codebases) - creates codebase map first
+  - After /gsd-new-project (greenfield codebases) - updates codebase map as code evolves
+  - Anytime to refresh codebase understanding
 </context>
 
 <when_to_use>
 **Use map-codebase for:**
-- Brownfield projects before initialization (understand existing code first)
-- Refreshing codebase map after significant changes
-- Onboarding to an unfamiliar codebase
-- Before major refactoring (understand current state)
-- When STATE.md references outdated codebase info
+  - Brownfield projects before initialization (understand existing code first)
+  - Refreshing codebase map after significant changes
+  - Onboarding to an unfamiliar codebase
+  - Before major refactoring (understand current state)
+  - When STATE.md references outdated codebase info
 
 **Skip map-codebase for:**
-- Greenfield projects with no code yet (nothing to map)
-- Trivial codebases (<5 files)
+  - Greenfield projects with no code yet (nothing to map)
+  - Trivial codebases (<5 files)
 </when_to_use>
 
 <process>
@@ -97,9 +105,9 @@ Check for .planning/STATE.md - loads context if project already initialized
 </process>
 
 <success_criteria>
-- [ ] .planning/codebase/ directory created
-- [ ] All 7 codebase documents written by mapper agents
-- [ ] Documents follow template structure
-- [ ] Parallel agents completed without errors
-- [ ] User knows next steps
+  - [ ] .planning/codebase/ directory created
+  - [ ] All 7 codebase documents written by mapper agents
+  - [ ] Documents follow template structure
+  - [ ] Parallel agents completed without errors
+  - [ ] User knows next steps
 </success_criteria>

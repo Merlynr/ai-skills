@@ -1,48 +1,55 @@
 ---
 name: "gsd-workstreams"
 description: "Manage parallel workstreams — list, create, switch, status, progress, complete, and resume"
+tags: [utility, workstream, parallel, manage]
+triggers:
+  - 管理工作流
+  - 并行工作
+  - workstream
+tool_chain: [gsd-workstreams]
+
 metadata:
   short-description: "Manage parallel workstreams — list, create, switch, status, progress, complete, and resume"
 ---
 
 <codex_skill_adapter>
 ## A. Skill Invocation
-- This skill is invoked by mentioning `$gsd-workstreams`.
-- Treat all user text after `$gsd-workstreams` as `{{GSD_ARGS}}`.
-- If no arguments are present, treat `{{GSD_ARGS}}` as empty.
+  - This skill is invoked by mentioning `$gsd-workstreams`.
+  - Treat all user text after `$gsd-workstreams` as `{{GSD_ARGS}}`.
+  - If no arguments are present, treat `{{GSD_ARGS}}` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
 GSD workflows use `AskUserQuestion` (Claude Code syntax). Translate to Codex `request_user_input`:
 
 Parameter mapping:
-- `header` → `header`
-- `question` → `question`
-- Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
-- Generate `id` from header: lowercase, replace spaces with underscores
+  - `header` → `header`
+  - `question` → `question`
+  - Options formatted as `"Label" — description` → `{label: "Label", description: "description"}`
+  - Generate `id` from header: lowercase, replace spaces with underscores
 
 Batched calls:
-- `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
+  - `AskUserQuestion([q1, q2])` → single `request_user_input` with multiple entries in `questions[]`
 
 Multi-select workaround:
-- Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
+  - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
+  - When `request_user_input` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
 
 ## C. Task() → spawn_agent Mapping
 GSD workflows use `Task(...)` (Claude Code syntax). Translate to Codex collaboration tools:
 
 Direct mapping:
-- `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
-- `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
-- `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
+  - `Task(subagent_type="X", prompt="Y")` → `spawn_agent(agent_type="X", message="Y")`
+  - `Task(model="...")` → omit (Codex uses per-role config, not inline model selection)
+  - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 
 Parallel fan-out:
-- Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
+  - Spawn multiple agents → collect agent IDs → `wait(ids)` for all to complete
 
 Result parsing:
-- Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
-- `close_agent(id)` after collecting results from each agent
+  - Look for structured markers in agent output: `CHECKPOINT`, `PLAN COMPLETE`, `SUMMARY`, etc.
+  - `close_agent(id)` after collecting results from each agent
 </codex_skill_adapter>
 
 # /gsd-workstreams
@@ -79,7 +86,7 @@ Display the workstreams in a table format showing name, status, current phase, a
 ### create
 Run: `node "$GSD_TOOLS" workstream create <name> --raw --cwd "$CWD"`
 After creation, display the new workstream path and suggest next steps:
-- `/gsd-new-milestone --ws <name>` to set up the milestone
+  - `/gsd-new-milestone --ws <name>` to set up the milestone
 
 ### status
 Run: `node "$GSD_TOOLS" workstream status <name> --raw --cwd "$CWD"`
