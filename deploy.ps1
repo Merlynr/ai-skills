@@ -1,4 +1,4 @@
-# Skillshare 一键部署脚本 (Windows PowerShell)
+﻿# Skillshare 一键部署脚本 (Windows PowerShell)
 # 支持 Windows 10/11
 
 param(
