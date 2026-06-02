@@ -3,6 +3,7 @@
 
 param(
     [string]$Branch = "master",
+    [string]$Username = "",
     [switch]$Force
 )
 
@@ -106,7 +107,7 @@ function Update-Repository {
 
 # 激活平台配置
 function Set-PlatformConfig {
-    param([string]$TargetDir, [string]$Platform)
+    param([string]$TargetDir, [string]$Platform, [string]$Username)
     
     Set-Location $TargetDir
     
@@ -118,6 +119,21 @@ function Set-PlatformConfig {
             } else {
                 Write-Warn "未找到 setup-config.ps1，使用默认配置"
                 Copy-Item config.windows.yaml config.yaml -Force
+            }
+            
+            # 如果提供了用户名，替换配置文件中的用户名
+            if ($Username -ne "") {
+                Write-Info "替换用户名: $Username"
+                $configPath = Join-Path $TargetDir "config.yaml"
+                if (Test-Path $configPath) {
+                    $content = Get-Content $configPath -Raw -Encoding UTF8
+                    # 替换所有 C:/Users/xxx/ 为 C:/Users/$Username/
+                    $content = $content -replace 'C:/Users/[^/]+/', "C:/Users/$Username/"
+                    Set-Content $configPath -Value $content -Encoding UTF8 -NoNewline
+                    Write-Info "用户名已替换为: $Username"
+                } else {
+                    Write-Warn "config.yaml 不存在，无法替换用户名"
+                }
             }
         }
         "linux" {
@@ -219,7 +235,7 @@ function Test-Deployment {
 
 # 打印部署摘要
 function Show-Summary {
-    param([string]$TargetDir, [string]$Platform)
+    param([string]$TargetDir, [string]$Platform, [string]$Username)
     
     $skillCount = (Get-ChildItem "$TargetDir\skills" -Directory -ErrorAction SilentlyContinue).Count
     $scriptCount = (Get-ChildItem "$TargetDir\script\*.py" -ErrorAction SilentlyContinue).Count
@@ -231,15 +247,20 @@ function Show-Summary {
     Write-Host ""
     Write-Host "  平台: $Platform"
     Write-Host "  目录: $TargetDir"
+    if ($Username -ne "") {
+        Write-Host "  用户名: $Username"
+    }
     Write-Host ""
     Write-Host "  已安装组件:"
     Write-Host "    - Skills: $skillCount 个"
     Write-Host "    - Scripts: $scriptCount 个"
     Write-Host ""
-    Write-Host "  下一步:"
-    Write-Host "    1. cd $TargetDir"
-    Write-Host "    2. skillshare sync --all  # 同步 skills"
-    Write-Host "    3. python script\gsd-team-engine.py --analyze '测试任务'  # 测试"
+    Write-Host "  已完成:"
+    Write-Host "    - 配置文件已生成"
+    Write-Host "    - Skills 已同步到各工具"
+    Write-Host ""
+    Write-Host "  验证:"
+    Write-Host "    skillshare status  # 查看同步状态"
     Write-Host ""
     Write-Host "  文档:"
     Write-Host "    - README.md"
@@ -272,7 +293,7 @@ function Main {
     Update-Repository $targetDir
     
     # 激活平台配置
-    Set-PlatformConfig $targetDir $platform
+    Set-PlatformConfig $targetDir $platform $Username
     
     # 检查并安装组件
     Install-SkillshareCli
@@ -286,7 +307,7 @@ function Main {
     
     if ($valid) {
         # 打印摘要
-        Show-Summary $targetDir $platform
+        Show-Summary $targetDir $platform $Username
     } else {
         Write-Error "部署验证失败，请检查错误信息"
         exit 1

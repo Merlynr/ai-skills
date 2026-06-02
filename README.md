@@ -61,7 +61,17 @@ chmod +x setup-config.sh
 打开 **PowerShell**，运行：
 
 ```powershell
+# 自动部署（使用默认用户名）
 irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex
+
+# 指定用户名部署（推荐）
+irm https://raw.githubusercontent.com/Merlynr/ai-skills/master/deploy.ps1 | iex -Username "你的用户名"
+```
+
+或下载后运行：
+
+```powershell
+.\deploy.ps1 -Username "你的用户名"
 ```
 
 #### 方式二：手动部署
@@ -74,7 +84,7 @@ git clone https://github.com/Merlynr/ai-skills.git "$env:APPDATA\skillshare"
 cd "$env:APPDATA\skillshare"
 
 # 3. 运行部署脚本
-.\deploy.ps1
+.\deploy.ps1 -Username "你的用户名"
 ```
 
 #### 方式三：仅激活配置（已有仓库）
@@ -82,6 +92,7 @@ cd "$env:APPDATA\skillshare"
 ```powershell
 cd "$env:APPDATA\skillshare"
 .\setup-config.ps1
+# 若需要修改用户名，编辑 config.yaml 将 C:/Users/xxx/ 替换为你的用户名
 ```
 
 ---
@@ -100,9 +111,19 @@ npm install -g skillshare
 pip install nowledge-mem
 ```
 
-#### 3. 修改 Windows 用户名
+#### 3. Windows 用户名配置
 
-如果 Windows 用户名不是默认值，需要编辑 `config.yaml`：
+**使用 `-Username` 参数（推荐）**：
+
+部署时自动替换配置文件中的用户名：
+
+```powershell
+.\deploy.ps1 -Username "你的用户名"
+```
+
+**手动修改**：
+
+如果已部署但未指定用户名，可编辑 `config.yaml`：
 
 ```yaml
 sources:
@@ -129,6 +150,8 @@ targets:
 ```bash
 skillshare sync --all
 ```
+
+> **注意**：使用 `deploy.ps1` 部署时会自动执行同步，无需手动运行。
 
 #### 5. 验证部署
 
@@ -213,12 +236,9 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 - `search-memory` - 搜索知识库
 - `status` - 检查连接状态
 
-### 自制学习系列 - 3 个
+### 自制学习系列 - 2 个
 - `generate-daily-plan` - Obsidian 今日计划生成器（全局）
-- `gaoruan-study-session` - 高软/系统架构师每日学习会话（错题、截图、nmem 简报）
-- `cpp-rust-study-session` - C++/Rust 学习会话（答疑笔记、计划同步）
-
-> 后两个 skill 源自在 Obsidian 笔记库 `f:\note\.cursor\skills\` 的项目级 skill；纳入中央仓库后可通过 `skillshare sync` 分发到各工具的全局 skills 目录。在 `f:\note` 工作区内仍保留项目级副本，Cursor 打开该工作区时会自动加载。
+- `unified-learning-session` - 统一学习会话管理（支持任意学科，知识点分类整理，nmem 集成）
 
 ### 其他
 - `commit-message` - 生成中文 commit 消息（待纳入）
