@@ -8,10 +8,9 @@
 2. [Cymbal - 代码索引器](#2-cymbal---代码索引器)
 3. [RTK - CLI 代理工具](#3-rtk---cli-代理工具)
 4. [GSD - 项目管理工具](#4-gsd---项目管理工具)
-5. [nmem - 记忆管理工具](#5-nmem---记忆管理工具)
-6. [Skillshare - Skills 同步](#6-skillshare---skills-同步)
-7. [一键升级流程](#7-一键升级流程)
-8. [常见问题排查](#8-常见问题排查)
+5. [Skillshare - Skills 同步](#5-skillshare---skills-同步)
+6. [一键升级流程](#6-一键升级流程)
+7. [常见问题排查](#7-常见问题排查)
 
 ---
 
@@ -23,9 +22,8 @@
 |------|------|---------|------|
 | Cymbal | Go binary | `/root/.gvm/pkgsets/go1.22.3/global/bin/cymbal` | 代码索引与符号发现 |
 | RTK | 0.34.3 | `/root/.cargo/bin/rtk` | CLI 代理，优化输出 |
-| GSD | 1.42.3 | `~/.config/opencode/get-shit-done/` | 项目管理工作流 |
-| nmem | CLI 0.7.0 / Server 0.8.6 | `/root/.pyenv/shims/nmem` | Nowledge Mem 记忆管理 |
-| Skillshare | 0.19.24 | `/usr/local/bin/skillshare` | Skills 跨工具同步 |
+| GSD | 1.2.0 | `~/.config/opencode/get-shit-done/` | 项目管理工作流 |
+| Skillshare | 0.20.2 | `/usr/local/bin/skillshare` | Skills 跨工具同步 |
 
 ### 目录结构
 
@@ -211,85 +209,7 @@ skillshare list | grep gsd | wc -l
 
 ---
 
-## 5. nmem - 记忆管理工具
-
-> Nowledge Mem - AI 记忆管理 CLI，支持知识库、工作记忆和知识图谱。
-
-**GitHub**: https://github.com/nowledge-co/community
-
-### 检查版本
-
-```bash
-nmem --json status
-```
-
-输出示例：
-```json
-{
-  "status": "ok",
-  "version": "0.8.6",
-  "server_version": "0.8.6",
-  "cli_version": "0.7.0"
-}
-```
-
-### 升级方法
-
-```bash
-# 方式 1：升级 npx skills（推荐）
-npx skills add nowledge-co/community/nowledge-mem-npx-skills
-
-# 方式 2：升级 CLI
-nmem update
-
-# 方式 3：通过 pip 升级
-pip install --upgrade nowledge-mem
-
-# 方式 4：重新安装
-pip uninstall nowledge-mem
-pip install nowledge-mem
-```
-
-### Skills 同步
-
-nmem 的 skills 位于 `~/.config/skillshare/skills/` 中：
-
-- check-integration
-- distill-memory
-- find-skills
-- read-working-memory
-- save-handoff
-- save-thread
-- search-memory
-- status
-
-```bash
-# 同步 nmem skills
-skillshare sync --all
-```
-
-### 常用命令
-
-```bash
-nmem --json status             # 检查状态
-nmem --json stats              # 查看统计
-nmem m add "content"           # 添加记忆
-nmem m search "query"          # 搜索记忆
-nmem wm                        # 工作记忆
-nmem g                         # 知识图谱
-nmem tui                       # 交互式 TUI
-```
-
-### 验证升级
-
-```bash
-nmem --json status
-nmem --json m search "test" -n 1
-```
-
----
-
-## 6. Skillshare - Skills 同步
+## 5. Skillshare - Skills 同步
 
 > 跨 AI CLI 工具同步 skills 和 agents 的中央仓库管理工具。
 
@@ -376,18 +296,14 @@ cargo install rtk --force
 echo "=== 3. 升级 GSD ==="
 npx @opengsd/gsd-core@latest
 
-echo "=== 4. 升级 nmem ==="
-npx skills add nowledge-co/community/nowledge-mem-npx-skills
-
-echo "=== 5. 升级 Skillshare ==="
+echo "=== 4. 升级 Skillshare ==="
 skillshare upgrade
 
-echo "=== 6. 同步 Skills ==="
+echo "=== 5. 同步 Skills ==="
 skillshare sync --all
 
-echo "=== 7. 验证 ==="
+echo "=== 6. 验证 ==="
 rtk --version
-nmem --json status
 skillshare status
 ```
 
@@ -413,7 +329,7 @@ skillshare doctor
 
 ---
 
-## 8. 常见问题排查
+## 7. 常见问题排查
 
 ### 问题：skills 未同步到目标
 
@@ -427,19 +343,6 @@ skillshare status
 ```bash
 skillshare diff <target-name>
 skillshare sync --force
-```
-
-### 问题：nmem 连接失败
-
-```bash
-# 检查服务状态
-nmem --json status
-
-# 重启服务
-nmem service restart
-
-# 或手动启动
-nmem serve
 ```
 
 ### 问题：GSD 版本不匹配
@@ -487,10 +390,9 @@ cargo install rtk --force
 | Cymbal | https://github.com/1broseidon/cymbal | README |
 | RTK | https://github.com/rtk-ai/rtk | README |
 | GSD | https://github.com/gsd-build/get-shit-done/ | README |
-| nmem | https://github.com/nowledge-co/community | https://mem.nowledge.co/docs |
 | Skillshare | https://github.com/runkids/skillshare | README |
 
 ---
 
-*最后更新：2026-06-01*
+*最后更新：2026-06-02*
 *文档路径：~/.config/skillshare/UPGRADE-GUIDE.md*
