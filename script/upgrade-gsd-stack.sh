@@ -168,6 +168,13 @@ sync_all_targets() {
   if [ -x "$SCRIPT_DIR/prune-facade-locals.sh" ] && [ "$DRY_RUN" -eq 0 ]; then
     run "$SCRIPT_DIR/prune-facade-locals.sh" "${CURSOR_SKILLS:-$HOME/.cursor/skills}"
   fi
+  if command -v node >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/apply-opencode-gsd-surface.js" ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+      run node "$SCRIPT_DIR/apply-opencode-gsd-surface.js" --dry-run
+    else
+      run node "$SCRIPT_DIR/apply-opencode-gsd-surface.js"
+    fi
+  fi
 }
 
 verify_upgrade() {

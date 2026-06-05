@@ -193,6 +193,7 @@ M4.5 模块 AGENTS.md 写回
 skillshare update --group base --dry-run   # tracked 可 pull
 skillshare sync --all --force
 ./script/prune-facade-locals.sh            # cursor 门面清理（OpenCode: 同脚本传 ~/.config/opencode/skills）
+node script/apply-opencode-gsd-surface.js  # OpenCode /gsd-* 斜杠命令 → help+update
 skillshare status                          # 门面 target ~18 on-demand；codex ~95
 ```
 

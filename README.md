@@ -154,8 +154,9 @@ skillshare list                # 列出所有 skills
 
 期望结果（门面 target）：
 
-- **cursor / agents**：约 18 个 skill（`merlynr-dev-stack`、`gsd-ns-*` 等白名单）
-- **codex / opencode**：门面 target 约 18 个；**codex** 仍全量 ~95
+- **cursor / agents / opencode**：约 18 个 skill（skillshare 门面）
+- **codex**：全量 ~95
+- **OpenCode `/gsd-*` 斜杠命令**：另需 `node script/apply-opencode-gsd-surface.js`（见 § GSD base 层）
 
 #### 5. Windows 补充说明
 
@@ -180,6 +181,7 @@ skillshare update --group base
 npx @opengsd/gsd-core@latest
 python script/add-gsd-metadata.py
 skillshare sync --all --force
+node script/apply-opencode-gsd-surface.js
 ```
 
 Linux 一键等价：`./script/upgrade-gsd-stack.sh`（详见下文 § GSD base 层）。
@@ -251,10 +253,20 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 
 ```bash
 skillshare update --group base          # tracked 上游 git pull
-./script/upgrade-gsd-stack.sh         # Linux：L1→L2→L3→sync 全栈
+./script/upgrade-gsd-stack.sh         # Linux：L1→L2→L3→sync→verify
 ./script/setup-tracked-base.sh          # 新机器注册 tracked base
 ./script/prune-facade-locals.sh         # cursor copy 模式清理 stale gsd-*
+node script/apply-opencode-gsd-surface.js   # OpenCode L1：/gsd-* 斜杠命令收紧（仅 help+update）
 ```
+
+**OpenCode 两层说明**（skillshare sync 只收紧一层）：
+
+| 层 | 路径 | 收紧方式 |
+|----|------|----------|
+| Skills（Agent 可选 skill） | `~/.config/opencode/skills/` | skillshare `include` 白名单 |
+| Slash 命令（`/gsd-*` 菜单） | `~/.config/opencode/command/` | GSD `.gsd-profile` + `apply-opencode-gsd-surface.js` |
+
+默认 GSD 安装会把 OpenCode 的 `.gsd-profile` 设为 `full`（~67 个 `/gsd-*`），与 skillshare 无关。
 
 完整改造背景见 [docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)。
 
