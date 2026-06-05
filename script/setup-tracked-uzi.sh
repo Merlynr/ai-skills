@@ -13,8 +13,8 @@ skillshare install wbh604/UZI-Skill \
 
 echo ""
 echo "Next:"
-echo "  PYTHONUTF8=1 pip install -r skills/uzi/_UZI-Skill/requirements.txt"
-echo "  # Windows PowerShell: \$env:PYTHONUTF8=1; python -m pip install -r skills/uzi/_UZI-Skill/requirements.txt"
+echo "  bash script/install-uzi-deps.sh"
+echo "  # Windows PowerShell: .\\script\\install-uzi-deps.ps1"
 echo "  # optional: playwright install chromium"
 echo "  skillshare sync --all --force"
 echo "  export UZI_ROOT=\"\$(pwd)/skills/uzi/_UZI-Skill\""

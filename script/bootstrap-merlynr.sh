@@ -14,6 +14,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SSOT="${SKILLSHARE_SKILLS:-$REPO_ROOT/skills}"
 
+# shellcheck source=install-uzi-deps.sh
+source "$SCRIPT_DIR/install-uzi-deps.sh"
+
 DRY_RUN=0
 WITH_L1=0
 NO_GSD=0
@@ -78,16 +81,6 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing command: $1"
 }
 
-pick_python() {
-  if command -v python3 >/dev/null 2>&1; then
-    echo python3
-  elif command -v python >/dev/null 2>&1; then
-    echo python
-  else
-    die "python3 not found (required for UZI pip install)"
-  fi
-}
-
 step_sync() {
   log "=== skillshare sync ==="
   require_cmd skillshare
@@ -121,14 +114,11 @@ step_uzi_engine() {
   fi
 
   log "=== UZI Python dependencies ==="
-  local py
-  py="$(pick_python)"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] PYTHONUTF8=1 $py -m pip install -r $uzi_root/requirements.txt"
+    install_uzi_pip_deps "$uzi_root" 1 || warn "pip install dry-run failed"
   else
-    # Windows GBK locale breaks pip reading UTF-8 comments in requirements.txt
-    PYTHONUTF8=1 "$py" -m pip install -r "$uzi_root/requirements.txt" \
-      || warn "pip install failed (retry: PYTHONUTF8=1 python -m pip install -r $uzi_root/requirements.txt)"
+    install_uzi_pip_deps "$uzi_root" 0 \
+      || warn "pip install failed (retry: bash script/install-uzi-deps.sh)"
   fi
 }
 

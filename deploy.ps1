@@ -211,7 +211,39 @@ function Sync-Skills {
     }
 }
 
-# Merlynr bootstrap (requires Git Bash or WSL bash on Windows)
+# Merlynr bootstrap (Git Bash / WSL; falls back to PowerShell UZI pip on Windows)
+function Get-GitBashPath {
+    $candidates = @(
+        (Get-Command bash -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
+        "${env:ProgramFiles}\Git\bin\bash.exe",
+        "${env:ProgramFiles(x86)}\Git\bin\bash.exe"
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path $p)) { return $p }
+    }
+    return $null
+}
+
+function Install-UziPythonDeps {
+    param([string]$TargetDir)
+
+    if ($NoUzi) { return }
+
+    $ps1 = Join-Path $TargetDir "script\install-uzi-deps.ps1"
+    if (-not (Test-Path $ps1)) {
+        Write-Warn "未找到 install-uzi-deps.ps1，跳过 UZI pip"
+        return
+    }
+
+    Write-Info "安装 UZI Python 依赖（临时清代理 + 清华源）..."
+    try {
+        & $ps1 -RepoRoot $TargetDir
+    } catch {
+        Write-Warn "UZI pip 安装失败: $_"
+        Write-Info "可手动运行: .\script\install-uzi-deps.ps1"
+    }
+}
+
 function Invoke-MerlynrBootstrap {
     param([string]$TargetDir)
 
@@ -223,12 +255,14 @@ function Invoke-MerlynrBootstrap {
     $bootstrap = Join-Path $TargetDir "script\bootstrap-merlynr.sh"
     if (-not (Test-Path $bootstrap)) {
         Write-Warn "未找到 bootstrap-merlynr.sh，跳过"
+        Install-UziPythonDeps $TargetDir
         return
     }
 
-    $bash = Get-Command bash -ErrorAction SilentlyContinue
-    if (-not $bash) {
-        Write-Warn "未找到 bash — 请手动运行: bash script/bootstrap-merlynr.sh"
+    $bashPath = Get-GitBashPath
+    if (-not $bashPath) {
+        Write-Warn "未找到 bash — 跳过 bootstrap shell 步骤"
+        Install-UziPythonDeps $TargetDir
         return
     }
 
@@ -237,8 +271,13 @@ function Invoke-MerlynrBootstrap {
     if ($NoUzi) { $args += "--no-uzi" }
     if ($NoGsd) { $args += "--no-gsd" }
 
-    Write-Info "运行 Merlynr bootstrap..."
-    & bash $bootstrap @args
+    Write-Info "运行 Merlynr bootstrap ($bashPath)..."
+    & $bashPath $bootstrap @args
+
+    # Windows: ensure pip deps even if bash pip step failed (proxy/encoding)
+    if (-not $NoUzi) {
+        Install-UziPythonDeps $TargetDir
+    }
 }
 
 # 验证部署
