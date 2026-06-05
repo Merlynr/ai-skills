@@ -1,15 +1,31 @@
 # 工具路由表
 
-Merlynr Dev Stack 的工具分工。GSD 更新不影响本文件。
+Merlynr Dev Stack 的工具分工。GSD 更新不影响本文件；**平台表以本节为唯一 SSOT**（`merlynr-dev-stack/SKILL.md` 不再重复）。
+
+## 按平台默认路径
+
+收到任务后先识别当前 IDE/CLI，再选探库与外部检索工具：
+
+| 平台 | 启动/记忆 | 本地探库（优先序） | 外部检索 |
+|------|-----------|-------------------|----------|
+| **Cursor** | `read-working-memory` / nmem（可选） | SemanticSearch → Grep → Read | browser MCP → WebFetch / WebSearch |
+| **Codex** | codex_smart → nmem | `rtk cymbal investigate` → Grep → Read | librarian → WebFetch |
+| **OpenCode** | read-working-memory | explore agent → SemanticSearch → Grep | librarian + analyze-mode |
+
+```plaintext
+Cursor   → 不要默认 Cymbal；无 Cymbal 时用 SemanticSearch + Grep
+Codex    → Cymbal 优先于裸 Grep（符号/调用链）
+OpenCode → explore 并行摸底，再精确 Grep
+```
 
 ## 本地代码库理解
 
 **何时用**：跨文件、架构不明、找复用、评估 refactor 影响。
 
-| 工具 | 平台 | 命令/方式 |
-|------|------|-----------|
-| Cymbal | Codex/Linux | `rtk cymbal investigate <symbol>` / `rtk cymbal refs` |
-| 语义搜索 | Cursor/OpenCode | IDE SemanticSearch / explore agent |
+| 工具 | 典型平台 | 命令/方式 |
+|------|----------|-----------|
+| SemanticSearch | Cursor / OpenCode | IDE SemanticSearch / explore agent |
+| Cymbal | Codex / Linux | `rtk cymbal investigate <symbol>` / `rtk cymbal refs` |
 | 精确搜索 | 全平台 | Grep / ripgrep / ast-grep |
 | 结构化摸底 | 有 GSD 项目 | `gsd-map-codebase` |
 | 已知路径 | 全平台 | 直接 Read 文件 |
@@ -17,7 +33,7 @@ Merlynr Dev Stack 的工具分工。GSD 更新不影响本文件。
 **分工**：
 
 ```plaintext
-语义/关系/影响  → Cymbal 或 SemanticSearch
+语义/关系/影响  → 见上表「按平台默认路径」
 明确符号/字符串 → Grep
 项目规范/架构   → .planning/codebase/ + AGENTS.md
 ```

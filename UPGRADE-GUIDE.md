@@ -29,7 +29,10 @@
 
 ```
 ~/.config/skillshare/          # Skills 主仓库（源）
-├── skills/                    # 所有 skills 源文件（78 个）
+├── skills/                    # skills 源文件
+│   ├── base/                  # GSD base 层（77 gsd-* + tracked _get-shit-done）
+│   └── merlynr-dev-stack/     # Merlynr 工作流 SSOT
+├── docs/GSD-BASE-LAYER-REFACTOR.md
 ├── agents/                    # 所有 agents 源文件
 ├── config.yaml                # 同步配置
 ├── UPGRADE-GUIDE.md           # 本文档
@@ -267,6 +270,24 @@ skillshare install <repo-path>
 
 # 创建新 skill
 skillshare new <name>
+```
+
+### GSD base 层（Merlynr 2026-06 改造）
+
+77 个 GSD skill 位于 `skills/base/`；门面 target（cursor、agents）仅 sync 白名单。完整改造说明见 **[docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)**。
+
+```bash
+# tracked 上游 pull（L1 monorepo 引用）
+skillshare update --group base
+
+# 全栈升级：L1 runtime → L2 vendored → L3 overlay → sync
+./script/upgrade-gsd-stack.sh
+
+# 新机器注册 tracked base
+./script/setup-tracked-base.sh
+
+# cursor copy 模式清理 stale gsd-*
+./script/prune-facade-locals.sh
 ```
 
 ### 验证升级

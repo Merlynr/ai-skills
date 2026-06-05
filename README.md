@@ -177,6 +177,8 @@ skillshare list                # 列出所有 skills
 ├── deploy.sh            # Linux 一键部署
 ├── deploy.ps1           # Windows 一键部署
 ├── UPGRADE-GUIDE.md     # 升级指南
+├── docs/
+│   └── GSD-BASE-LAYER-REFACTOR.md  # GSD base 层改造记录（2026-06）
 └── README.md            # 本文件
 ```
 
@@ -243,6 +245,8 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 ## 升级指南
 
 详见 [UPGRADE-GUIDE.md](./UPGRADE-GUIDE.md)
+
+**GSD base 层改造**（三层架构、tracked base、门面 sync）：见 [docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)
 
 ### 一键升级
 

@@ -14,6 +14,10 @@ allowed-tools:
 
 
 Route to the appropriate phase-pipeline skill based on the user's intent.
+
+**Before GSD phases**: if requirements or acceptance are unclear and the task is not trivial (S级),
+read `merlynr-dev-stack` → Phase 0 / [grill-lite.md](../merlynr-dev-stack/grill-lite.md) (M ≤3 rounds, L ≤12).
+
 Sub-skill names below are post-#2790 consolidated targets — `gsd-phase`
 absorbs the former add/insert/remove/edit-phase commands and `gsd-progress`
 absorbs the former next/do commands.
