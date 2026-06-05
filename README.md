@@ -102,13 +102,7 @@ cd "$env:APPDATA\skillshare"
 npm install -g skillshare
 ```
 
-#### 2. 安装 nmem（可选，用于记忆管理）
-
-```bash
-pip install nowledge-mem
-```
-
-#### 3. Windows 用户名配置
+#### 2. Windows 用户名配置
 
 **使用 `-Username` 参数（推荐）**：
 
@@ -142,7 +136,7 @@ targets:
       path: C:/Users/你的用户名/.config/opencode/skills
 ```
 
-#### 4. 同步 skills
+#### 3. 同步 skills
 
 ```bash
 skillshare sync --all
@@ -150,7 +144,7 @@ skillshare sync --all
 
 > **注意**：使用 `deploy.ps1` 部署时会自动执行同步，无需手动运行。
 
-#### 5. 验证部署
+#### 4. 验证部署
 
 ```bash
 skillshare status              # 查看同步状态
@@ -158,28 +152,57 @@ skillshare doctor              # 运行诊断
 skillshare list                # 列出所有 skills
 ```
 
-## 仓库结构
+期望结果（门面 target）：
+
+- **cursor / agents**：约 18 个 skill（`merlynr-dev-stack`、`gsd-ns-*` 等白名单）
+- **codex / opencode**：全量 ~95 个 skill（含 `skills/base/gsd-*`）
+
+#### 5. Windows 补充说明
+
+| 项目 | 说明 |
+|------|------|
+| SSOT 路径 | `%APPDATA%\skillshare`（不是 `~/.config/skillshare`） |
+| 配置模板 | `config.windows.yaml` → `setup-config.ps1` 或 `deploy.ps1 -Username` |
+| Cursor 探库 | 走 SemanticSearch / Grep，**不必**装 Cymbal |
+| Bash 脚本 | `script/*.sh` 需 **Git Bash** 或 **WSL**；或在 PowerShell 用下方等价命令 |
+
+Windows 上注册 tracked base（新机器首次，可选）：
+
+```powershell
+cd $env:APPDATA\skillshare
+skillshare install gsd-build/get-shit-done --into base --track --force --kind skill --skip-audit
+```
+
+Windows 上 GSD 栈升级（无 bash 时分步）：
+
+```powershell
+skillshare update --group base
+npx @opengsd/gsd-core@latest
+python script/add-gsd-metadata.py
+skillshare sync --all --force
+```
+
+Linux 一键等价：`./script/upgrade-gsd-stack.sh`（详见下文 § GSD base 层）。
+
+---
 
 ```
 ~/.config/skillshare/          # Linux
 %AppData%\skillshare\          # Windows
-├── skills/              # 78+ skills（含 GSD、学习系列等）
-├── agents/              # 自定义 agents（待扩展）
-├── script/              # 团队引擎脚本
-│   ├── gsd-team-engine.py
-│   ├── gsd-team-gen.py
-│   └── skill-registry.json
-├── config.linux.yaml    # Linux 配置模板
-├── config.windows.yaml  # Windows 配置模板
-├── config.yaml          # 本机激活配置（gitignore）
-├── setup-config.sh      # Linux 配置激活
-├── setup-config.ps1     # Windows 配置激活
-├── deploy.sh            # Linux 一键部署
-├── deploy.ps1           # Windows 一键部署
-├── UPGRADE-GUIDE.md     # 升级指南
-├── docs/
-│   └── GSD-BASE-LAYER-REFACTOR.md  # GSD base 层改造记录（2026-06）
-└── README.md            # 本文件
+├── skills/
+│   ├── base/                  # GSD base 层（77 gsd-* + tracked _get-shit-done）
+│   ├── merlynr-dev-stack/     # Merlynr 工作流（grill-lite、tool-routing）
+│   ├── gsd-ns-*/              # GSD 命名空间路由（6 个）
+│   └── …                      # 用户层 skill、学习系列、nmem 等
+├── agents/
+├── script/                    # gsd-team-engine.py、upgrade-gsd-stack.sh 等
+├── config.linux.yaml          # Linux 配置模板
+├── config.windows.yaml        # Windows 配置模板
+├── config.yaml                # 本机激活配置（gitignore）
+├── deploy.sh / deploy.ps1
+├── UPGRADE-GUIDE.md
+├── docs/GSD-BASE-LAYER-REFACTOR.md
+└── README.md
 ```
 
 ### 跨平台配置
@@ -201,6 +224,40 @@ export SKILLSHARE_CONFIG=~/.config/skillshare/config.linux.yaml
 $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 ```
 
+## GSD base 层与同步策略
+
+2026-06 改造后，GSD 分为三层（Merlynr 定制写在 L3，GSD 升级不覆盖）：
+
+| 层 | 位置 | 更新方式 |
+|----|------|----------|
+| **L1 Runtime** | `~/.codex/get-shit-done/` 等 | `npx @opengsd/gsd-core@latest` / `gsd-update` |
+| **L2 Skills** | `skills/base/gsd-*/` + tracked `base/_get-shit-done/` | `skillshare update --group base` + codex rsync（见升级脚本） |
+| **L3 Merlynr** | `merlynr-dev-stack`、`gsd-ns-*` 等 | 只改本仓库 SSOT |
+
+**同步策略**（`config.linux.yaml` / `config.windows.yaml` 已配置）：
+
+| Target | 模式 | 内容 |
+|--------|------|------|
+| **cursor、agents** | merge / copy + **include 白名单** | ~18 门面 skill |
+| **codex、opencode** | merge，无 filter | 全量 ~95 skill |
+
+门面 target 未 sync 某 base skill 时，Agent Read SSOT：
+
+```plaintext
+{SSOT}/skills/base/{skill-name}/SKILL.md
+```
+
+**常用维护命令：**
+
+```bash
+skillshare update --group base          # tracked 上游 git pull
+./script/upgrade-gsd-stack.sh         # Linux：L1→L2→L3→sync 全栈
+./script/setup-tracked-base.sh          # 新机器注册 tracked base
+./script/prune-facade-locals.sh         # cursor copy 模式清理 stale gsd-*
+```
+
+完整改造背景见 [docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)。
+
 ## 工具链概览
 
 | 工具 | 版本 | 用途 |
@@ -209,21 +266,28 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 | RTK | 0.34.3 | CLI 代理，优化输出 |
 | GSD | 1.42.3 | 项目管理工作流 |
 | nmem | CLI 0.7.0 / Server 0.8.6 | 记忆管理 |
-| Skillshare | 0.19.24 | Skills 跨工具同步 |
+| Skillshare | 0.20.x | Skills 跨工具同步 |
+
+> Cymbal / RTK 主要为 **Codex/Linux** 探库；**Cursor on Windows** 按 `merlynr-dev-stack/tool-routing.md` 用 IDE 搜索即可。
 
 ## 同步目标
 
-| 目标 | 路径 | 模式 |
-|------|------|------|
-| agents | `~/.agents/skills` | merge |
-| codex | `~/.codex/skills` | merge |
-| cursor | `~/.cursor/skills` | copy |
-| opencode | `~/.config/opencode/skills` | merge |
+路径以 Linux 为例；Windows 将 `~` 换为 `C:/Users/<用户名>/`（或由 `config.windows.yaml` / `deploy.ps1 -Username` 生成）。
+
+| 目标 | 路径 | 模式 | 说明 |
+|------|------|------|------|
+| agents | `~/.agents/skills` | merge | 门面白名单 |
+| codex | `~/.codex/skills` | merge | 全量 |
+| cursor | `~/.cursor/skills` | copy | 门面白名单 |
+| opencode | `~/.config/opencode/skills` | merge | 全量 |
 
 ## 包含的 Skills
 
-### GSD (Get Shit Done) 系列 - 70 个
-项目管理、代码审查、调试、文档生成等全套工具链。
+### GSD 系列
+
+- **base 层**（`skills/base/`）：77 个 `gsd-*` workflow skill
+- **用户层**：`gsd-ns-*`（6）、`gsd-do/fast/quick`、`gsd-team`、`gsd-update`、`gsd-reapply-patches`
+- **工作流入口**：`merlynr-dev-stack`（S/M/L 路由 + grill-lite + tool-routing）
 
 ### Nowledge Mem 系列 - 8 个
 - `check-integration` - 检查 Nowledge Mem 集成
@@ -244,17 +308,23 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 
 ## 升级指南
 
-详见 [UPGRADE-GUIDE.md](./UPGRADE-GUIDE.md)
+详见 [UPGRADE-GUIDE.md](./UPGRADE-GUIDE.md)（Cymbal / RTK / GSD L1 / skillshare CLI）。
 
-**GSD base 层改造**（三层架构、tracked base、门面 sync）：见 [docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)
-
-### 一键升级
+### 日常升级
 
 ```bash
 skillshare upgrade             # 升级 skillshare CLI
-skillshare update --all        # 更新所有 skills
-skillshare sync --all          # 同步到所有目标
+skillshare update --group base # 仅 tracked GSD 上游
+skillshare sync --all          # 同步到所有 target
 ```
+
+### GSD 全栈（Linux）
+
+```bash
+./script/upgrade-gsd-stack.sh
+```
+
+Windows 分步命令见上文 **§ 部署后配置 → Windows 补充说明**。完整改造记录：[docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)
 
 ## 常用命令
 
@@ -292,4 +362,4 @@ skillshare log                 # 查看操作日志
 
 ---
 
-*最后更新：2026-06-01*
+*最后更新：2026-06-05*
