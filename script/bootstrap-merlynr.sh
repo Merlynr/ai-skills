@@ -124,9 +124,11 @@ step_uzi_engine() {
   local py
   py="$(pick_python)"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] $py -m pip install -r $uzi_root/requirements.txt"
+    log "[dry-run] PYTHONUTF8=1 $py -m pip install -r $uzi_root/requirements.txt"
   else
-    "$py" -m pip install -r "$uzi_root/requirements.txt" || warn "pip install failed (retry manually)"
+    # Windows GBK locale breaks pip reading UTF-8 comments in requirements.txt
+    PYTHONUTF8=1 "$py" -m pip install -r "$uzi_root/requirements.txt" \
+      || warn "pip install failed (retry: PYTHONUTF8=1 python -m pip install -r $uzi_root/requirements.txt)"
   fi
 }
 
