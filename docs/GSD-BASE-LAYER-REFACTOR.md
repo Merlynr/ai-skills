@@ -16,7 +16,7 @@
 
 1. **隐藏 base 层**：77 个 `gsd-*` 迁入 `skills/base/`，用户层只保留 facade（`merlynr-dev-stack`、`gsd-ns-*`、少量快捷 skill）。
 2. **tracked 上游**：`gsd-build/get-shit-done` 注册为 skillshare tracked repo，支持 `skillshare update --group base`。
-3. **多 target 分工**：门面型（cursor、agents）白名单 sync；执行型（codex、opencode）全量 sync。
+3. **多 target 分工**：门面型（cursor、agents、**opencode**）白名单 sync；**codex** 全量 sync。
 4. **升级可重复**：一条脚本走完 L1→L2→L3→sync→verify。
 5. **Merlynr 工作流细化**：grill-lite / tool-routing 边界与 handoff 模板。
 
@@ -59,8 +59,8 @@ skills/
 `config.linux.yaml` / `config.windows.yaml`：
 
 - `target_naming: standard` — `skills/base/gsd-plan-phase` sync 为 `gsd-plan-phase`（非 `base__gsd-plan-phase`）。
-- **门面 profile**（`cursor`、`agents`）：`include` 白名单 ~18 skill。
-- **执行 profile**（`codex`、`opencode`）：无 filter，全量 ~95 skill。
+- **门面 profile**（`cursor`、`agents`、**`opencode`**）：`include` 白名单 ~18 skill。
+- **执行 profile**（**`codex`**）：无 filter，全量 ~95 skill。
 
 ### 3.3 门面 target 读 base skill
 
@@ -192,8 +192,8 @@ M4.5 模块 AGENTS.md 写回
 ```bash
 skillshare update --group base --dry-run   # tracked 可 pull
 skillshare sync --all --force
-./script/prune-facade-locals.sh            # cursor 门面清理
-skillshare status                          # cursor ~18 on-demand，codex ~95
+./script/prune-facade-locals.sh            # cursor 门面清理（OpenCode: 同脚本传 ~/.config/opencode/skills）
+skillshare status                          # 门面 target ~18 on-demand；codex ~95
 ```
 
 抽查：

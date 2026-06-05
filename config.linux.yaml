@@ -35,6 +35,7 @@ targets:
   opencode:
     skills:
       path: /root/.config/opencode/skills
+      include: *facade_skills
 ignore:
   - '**/.DS_Store'
   - '**/.git/**'

@@ -1,5 +1,7 @@
-#!/usr/bin/env bash
-# Remove stale local skill copies on copy-mode targets (cursor) after facade include sync.
+# Remove stale gsd-* skills on facade targets after include-filter sync.
+# Usage: prune-facade-locals.sh [target_dir]
+#   Default: ~/.cursor/skills (copy mode)
+#   OpenCode: ~/.config/opencode/skills
 set -euo pipefail
 
 TARGET="${1:-$HOME/.cursor/skills}"

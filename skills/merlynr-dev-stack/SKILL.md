@@ -255,7 +255,7 @@ docs(flowcollect): update module agent after merge perf investigation
 
 ## Base 层 skill 加载（门面型 target）
 
-门面 profile（cursor、agents 等）未 sync 完整 GSD base 层时，**不要**假设 Skill/$mention 可用：
+门面 profile（cursor、agents、opencode 等）未 sync 完整 GSD base 层时，**不要**假设 Skill/$mention 可用：
 
 1. 解析 SSOT：`SKILLSHARE_SKILLS` 或 `~/.config/skillshare/skills`（Windows：`%APPDATA%/skillshare/skills`）
 2. Read `{SSOT}/base/{skill-name}/SKILL.md`
@@ -263,7 +263,7 @@ docs(flowcollect): update module agent after merge perf investigation
 
 示例：`gsd-plan-phase` → Read `~/.config/skillshare/skills/base/gsd-plan-phase/SKILL.md`
 
-执行型 target（codex、opencode）通常已全量 sync，优先 Skill/$mention；缺失时再 Read SSOT。
+执行型 target（**codex**）通常已全量 sync，优先 Skill/$mention；门面 target（cursor、agents、opencode）缺失时再 Read SSOT base 路径。
 
 ## 交付格式（对用户）
 

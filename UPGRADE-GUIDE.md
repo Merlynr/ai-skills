@@ -274,7 +274,7 @@ skillshare new <name>
 
 ### GSD base 层（Merlynr 2026-06 改造）
 
-77 个 GSD skill 位于 `skills/base/`；门面 target（cursor、agents）仅 sync 白名单。完整改造说明见 **[docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)**。
+77 个 GSD skill 位于 `skills/base/`；门面 target（cursor、agents、**opencode**）仅 sync 白名单；**codex** 全量。完整改造说明见 **[docs/GSD-BASE-LAYER-REFACTOR.md](./docs/GSD-BASE-LAYER-REFACTOR.md)**。
 
 ```bash
 # tracked 上游 pull（L1 monorepo 引用）

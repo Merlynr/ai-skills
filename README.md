@@ -155,7 +155,7 @@ skillshare list                # 列出所有 skills
 期望结果（门面 target）：
 
 - **cursor / agents**：约 18 个 skill（`merlynr-dev-stack`、`gsd-ns-*` 等白名单）
-- **codex / opencode**：全量 ~95 个 skill（含 `skills/base/gsd-*`）
+- **codex / opencode**：门面 target 约 18 个；**codex** 仍全量 ~95
 
 #### 5. Windows 补充说明
 
@@ -238,8 +238,8 @@ $env:SKILLSHARE_CONFIG = "$env:APPDATA\skillshare\config.windows.yaml"
 
 | Target | 模式 | 内容 |
 |--------|------|------|
-| **cursor、agents** | merge / copy + **include 白名单** | ~18 门面 skill |
-| **codex、opencode** | merge，无 filter | 全量 ~95 skill |
+| **cursor、agents、opencode** | merge / copy + **include 白名单** | ~18 门面 skill |
+| **codex** | merge，无 filter | 全量 ~95 skill |
 
 门面 target 未 sync 某 base skill 时，Agent Read SSOT：
 
@@ -279,7 +279,7 @@ skillshare update --group base          # tracked 上游 git pull
 | agents | `~/.agents/skills` | merge | 门面白名单 |
 | codex | `~/.codex/skills` | merge | 全量 |
 | cursor | `~/.cursor/skills` | copy | 门面白名单 |
-| opencode | `~/.config/opencode/skills` | merge | 全量 |
+| opencode | `~/.config/opencode/skills` | merge | 门面白名单 |
 
 ## 包含的 Skills
 
