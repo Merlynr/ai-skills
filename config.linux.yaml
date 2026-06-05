@@ -11,6 +11,7 @@ targets:
     skills:
       path: /root/.agents/skills
       include: &facade_skills
+        - "commit-message"
         - "merlynr-dev-stack"
         - "gsd-ns-*"
         - "gsd-team"

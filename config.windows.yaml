@@ -12,6 +12,7 @@ targets:
     skills:
       path: C:/Users/101202106068/.agents/skills
       include: &facade_skills
+        - "commit-message"
         - "merlynr-dev-stack"
         - "gsd-ns-*"
         - "gsd-team"
