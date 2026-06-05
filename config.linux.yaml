@@ -5,10 +5,25 @@ sources:
   skills: /root/.config/skillshare/skills
   agents: /root/.config/skillshare/agents
 mode: merge
+target_naming: standard
 targets:
   agents:
     skills:
       path: /root/.agents/skills
+      include: &facade_skills
+        - "merlynr-dev-stack"
+        - "gsd-ns-*"
+        - "gsd-team"
+        - "gsd-do"
+        - "gsd-fast"
+        - "gsd-quick"
+        - "gsd-update"
+        - "gsd-reapply-patches"
+        - "gaoruan-*"
+        - "stock-trade-*"
+        - "skillshare"
+        - "unified-learning-session"
+        - "generate-daily-plan"
   codex:
     skills:
       path: /root/.codex/skills
@@ -16,6 +31,7 @@ targets:
     skills:
       path: /root/.cursor/skills
       mode: copy
+      include: *facade_skills
   opencode:
     skills:
       path: /root/.config/opencode/skills

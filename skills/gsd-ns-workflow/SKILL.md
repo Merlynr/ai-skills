@@ -31,3 +31,9 @@ absorbs the former next/do commands.
 | Cross-AI plan review convergence loop | gsd-plan-review-convergence |
 
 Invoke the matched skill directly using the Skill tool.
+
+If the sub-skill is not available in the current tool (facade targets: cursor, agents, …), Read the SSOT base layer instead:
+
+`{SKILLSHARE_SKILLS or ~/.config/skillshare/skills}/base/{skill-name}/SKILL.md`
+
+Then follow that file; runtime workflows still load from the platform GSD install (e.g. `~/.codex/get-shit-done/`).

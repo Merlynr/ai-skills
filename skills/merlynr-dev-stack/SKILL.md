@@ -253,6 +253,18 @@ docs(flowcollect): update module agent after merge perf investigation
 | **OpenCode** | read-working-memory | search-mode + explore | librarian + analyze-mode |
 | **Cursor** | nmem search（可选） | IDE 搜索 + 读文件 | browser MCP / WebFetch |
 
+## Base 层 skill 加载（门面型 target）
+
+门面 profile（cursor、agents 等）未 sync 完整 GSD base 层时，**不要**假设 Skill/$mention 可用：
+
+1. 解析 SSOT：`SKILLSHARE_SKILLS` 或 `~/.config/skillshare/skills`（Windows：`%APPDATA%/skillshare/skills`）
+2. Read `{SSOT}/base/{skill-name}/SKILL.md`
+3. 按文件内容执行；L1 workflow 仍从平台 runtime 读取（如 `~/.codex/get-shit-done/workflows/`）
+
+示例：`gsd-plan-phase` → Read `~/.config/skillshare/skills/base/gsd-plan-phase/SKILL.md`
+
+执行型 target（codex、opencode）通常已全量 sync，优先 Skill/$mention；缺失时再 Read SSOT。
+
 ## 交付格式（对用户）
 
 简体中文回复，包含：

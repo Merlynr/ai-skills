@@ -8,7 +8,11 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
-SKILLS_DIR = SCRIPT_DIR.parent / "skills"
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from _common import resolve_gsd_base_dir  # noqa: E402
+
+GSD_BASE_DIR = resolve_gsd_base_dir()
 METADATA_PY = SCRIPT_DIR / "add-gsd-metadata.py"
 
 # Authoritative tag map (SSOT for tag refinement)
@@ -127,7 +131,7 @@ def tags_yaml_inline(tags: list[str]) -> str:
 
 
 def replace_tags_in_skill(skill_name: str, tags: list[str]) -> bool:
-    skill_file = SKILLS_DIR / skill_name / "SKILL.md"
+    skill_file = GSD_BASE_DIR / skill_name / "SKILL.md"
     if not skill_file.exists():
         print(f"  skip {skill_name}: SKILL.md missing")
         return False

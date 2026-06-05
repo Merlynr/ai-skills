@@ -6,10 +6,25 @@ sources:
   skills: C:/Users/101202106068/AppData/Roaming/skillshare/skills
   agents: C:/Users/101202106068/AppData/Roaming/skillshare/agents
 mode: merge
+target_naming: standard
 targets:
   agents:
     skills:
       path: C:/Users/101202106068/.agents/skills
+      include: &facade_skills
+        - "merlynr-dev-stack"
+        - "gsd-ns-*"
+        - "gsd-team"
+        - "gsd-do"
+        - "gsd-fast"
+        - "gsd-quick"
+        - "gsd-update"
+        - "gsd-reapply-patches"
+        - "gaoruan-*"
+        - "stock-trade-*"
+        - "skillshare"
+        - "unified-learning-session"
+        - "generate-daily-plan"
   codex:
     skills:
       path: C:/Users/101202106068/.codex/skills
@@ -17,6 +32,7 @@ targets:
     skills:
       path: C:/Users/101202106068/.cursor/skills
       mode: copy
+      include: *facade_skills
   opencode:
     skills:
       path: C:/Users/101202106068/.config/opencode/skills

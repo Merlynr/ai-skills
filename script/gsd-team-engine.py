@@ -37,53 +37,16 @@ def _get_triage_module():
     return module
 
 
-def resolve_skillshare_root() -> Path:
-    """Resolve global skillshare root (Windows: %APPDATA%\\skillshare)."""
-    env_root = os.environ.get("SKILLSHARE_ROOT")
-    if env_root:
-        return Path(env_root).expanduser()
+SCRIPT_DIR = Path(__file__).parent
+sys.path.insert(0, str(SCRIPT_DIR))
 
-    if sys.platform == "win32":
-        appdata = os.environ.get("APPDATA")
-        if appdata:
-            return Path(appdata) / "skillshare"
+from _common import (  # noqa: E402
+    iter_skill_md_paths,
+    resolve_skill_md,
+    resolve_skills_dir,
+)
 
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    if xdg:
-        return Path(xdg) / "skillshare"
-    return Path.home() / ".config" / "skillshare"
-
-
-def _skills_dir_from_config(config_path: Path) -> Optional[Path]:
-    if not config_path.is_file():
-        return None
-    content = config_path.read_text(encoding="utf-8")
-    match = re.search(
-        r"^sources:\s*\n(?:[ \t].*\n)*?[ \t]*skills:\s*(.+)\s*$",
-        content,
-        re.MULTILINE,
-    )
-    if not match:
-        return None
-    return Path(match.group(1).strip().strip('"\'').replace("/", os.sep))
-
-
-def resolve_skills_dir() -> Path:
-    """Resolve skills SSOT directory (config.yaml > env > platform default > repo)."""
-    env_skills = os.environ.get("SKILLSHARE_SKILLS")
-    if env_skills:
-        return Path(env_skills).expanduser()
-
-    root = resolve_skillshare_root()
-    from_config = _skills_dir_from_config(root / "config.yaml")
-    if from_config and from_config.is_dir():
-        return from_config
-
-    repo_skills = SCRIPT_DIR.parent / "skills"
-    if repo_skills.is_dir():
-        return repo_skills
-
-    return root / "skills"
+SKILLS_DIR = resolve_skills_dir()
 
 
 def resolve_opencode_config_dir() -> Path:
@@ -95,7 +58,6 @@ def resolve_opencode_config_dir() -> Path:
     return Path.home() / ".config" / "opencode"
 
 
-SKILLS_DIR = resolve_skills_dir()
 WORKSPACE = resolve_opencode_config_dir() / "team_workspace"
 LEARNINGS_DIR = SCRIPT_DIR / "learnings"
 
@@ -262,13 +224,10 @@ class IntentRecognizer:
                 file=sys.stderr,
             )
             return
-        for skill_dir in SKILLS_DIR.iterdir():
-            if skill_dir.is_dir():
-                skill_md = skill_dir / "SKILL.md"
-                if skill_md.exists():
-                    metadata = SkillMetadata.parse_skill(skill_md)
-                    if metadata:
-                        self.skills_cache[skill_dir.name] = metadata
+        for skill_name, skill_md in iter_skill_md_paths(SKILLS_DIR):
+            metadata = SkillMetadata.parse_skill(skill_md)
+            if metadata:
+                self.skills_cache[skill_name] = metadata
     
     def identify_intent(self, task_desc: str) -> Dict:
         """识别任务意图，返回匹配的 Skills"""
@@ -796,8 +755,8 @@ class FeedbackLoop:
     def _append_to_skill(self, skills: List[str], learning: str):
         """追加学习记录到 skill 文件"""
         for skill_name in skills:
-            skill_path = SKILLS_DIR / skill_name / "SKILL.md"
-            if skill_path.exists():
+            skill_path = resolve_skill_md(skill_name)
+            if skill_path and skill_path.exists():
                 content = skill_path.read_text(encoding='utf-8')
                 
                 # 检查是否已有学习记录部分

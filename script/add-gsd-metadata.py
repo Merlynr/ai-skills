@@ -4,9 +4,15 @@
 """
 
 import re
+import sys
 from pathlib import Path
 
-SKILLS_DIR = Path("/root/.config/skillshare/skills")
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from _common import resolve_gsd_base_dir  # noqa: E402
+
+GSD_BASE_DIR = resolve_gsd_base_dir()
 
 # GSD skill 元数据配置
 GSD_METADATA = {
@@ -505,7 +511,7 @@ def yaml_list(items: list, indent: int = 0) -> str:
 
 def add_metadata_to_skill(skill_name: str, metadata: dict) -> bool:
     """为单个 skill 添加元数据"""
-    skill_dir = SKILLS_DIR / skill_name
+    skill_dir = GSD_BASE_DIR / skill_name
     skill_file = skill_dir / "SKILL.md"
     
     if not skill_file.exists():
@@ -568,6 +574,7 @@ def main():
     """主函数"""
     print("=" * 60)
     print("  批量为 GSD skill 添加元数据配置")
+    print(f"  GSD base: {GSD_BASE_DIR}")
     print("=" * 60)
     print()
     

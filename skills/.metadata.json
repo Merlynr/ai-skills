@@ -1,6 +1,12 @@
 {
   "version": 1,
   "entries": {
+    "base/_get-shit-done": {
+      "source": "https://github.com/gsd-build/get-shit-done.git",
+      "tracked": true,
+      "group": "base",
+      "branch": "main"
+    },
     "skillshare": {
       "source": "github.com/runkids/skillshare/skills/skillshare",
       "type": "github-subdir",

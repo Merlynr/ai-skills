@@ -85,10 +85,12 @@ nmem --json m update <id> -t "标题" -c $cjs
 
 ## skillshare 路径
 
-| 环境 | SSOT |
-|------|------|
-| Windows | `%APPDATA%\skillshare\skills\` |
-| Linux | `~/.config/skillshare/skills/` |
+| 环境 | SSOT | GSD base 层 |
+|------|------|---------------|
+| Windows | `%APPDATA%\skillshare\skills\` | `...\skills\base\{skill-name}\SKILL.md` |
+| Linux | `~/.config/skillshare/skills/` | `.../skills/base/{skill-name}/SKILL.md` |
+
+门面型 target 未 sync base 层 skill 时：Read 上表 base 路径，见 merlynr-dev-stack「Base 层 skill 加载」。
 
 新建 skill → 源目录创建 → `skillshare sync` → `skillshare push`（若配了 Git remote）。
 
