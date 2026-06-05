@@ -8,3 +8,7 @@ version-check.json
 
 # nmem 简报草稿（应写入 Nowledge Mem，不进 skill 仓库）
 skills/**/nmem-briefing-*.md
+
+# Python / GSD 升级临时备份（upgrade-gsd-stack.sh 产生，勿提交）
+script/__pycache__/
+skills/base.backup.*/

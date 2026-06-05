@@ -229,6 +229,20 @@ print_rollback_hint() {
   log "Runtime patches: run gsd-reapply-patches after L1 rollback"
 }
 
+prune_stale_base_backups() {
+  local d
+  for d in "$SSOT"/base.backup.*; do
+    [ -d "$d" ] || continue
+    [ "$d" = "$BACKUP_DIR" ] && continue
+    if [ "$DRY_RUN" -eq 1 ]; then
+      log "[dry-run] rm -rf $d"
+    else
+      log "Removing stale base backup (duplicate skill discovery): $d"
+      rm -rf "$d"
+    fi
+  done
+}
+
 main() {
   cd "$REPO_ROOT"
   log "SSOT=$SSOT"
@@ -246,6 +260,7 @@ main() {
   apply_l3_overlay
   sync_all_targets
   verify_upgrade
+  prune_stale_base_backups
   print_rollback_hint
 }
 
