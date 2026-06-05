@@ -7,6 +7,42 @@ set -euo pipefail
 # 配置
 REPO_URL="https://github.com/Merlynr/ai-skills.git"
 REPO_BRANCH="master"
+RUN_BOOTSTRAP=1
+BOOTSTRAP_EXTRA=()
+
+# 解析参数
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-bootstrap)
+            RUN_BOOTSTRAP=0
+            shift
+            ;;
+        --with-l1)
+            BOOTSTRAP_EXTRA+=(--with-l1)
+            shift
+            ;;
+        --no-uzi)
+            BOOTSTRAP_EXTRA+=(--no-uzi)
+            shift
+            ;;
+        --no-gsd)
+            BOOTSTRAP_EXTRA+=(--no-gsd)
+            shift
+            ;;
+        --dry-run)
+            BOOTSTRAP_EXTRA+=(--dry-run)
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: deploy.sh [--no-bootstrap] [--with-l1] [--no-uzi] [--no-gsd] [--dry-run]"
+            exit 0
+            ;;
+        *)
+            log_warn "Unknown arg: $1 (ignored)"
+            shift
+            ;;
+    esac
+done
 
 # 颜色输出
 RED='\033[0;31m'
@@ -170,6 +206,25 @@ sync_skills() {
     fi
 }
 
+# Merlynr stack bootstrap (GSD base + UZI + OpenCode surface)
+run_bootstrap() {
+    local target_dir=$1
+
+    if [ "$RUN_BOOTSTRAP" -eq 0 ]; then
+        log_info "跳过 bootstrap（--no-bootstrap）"
+        return 0
+    fi
+
+    if [ ! -f "$target_dir/script/bootstrap-merlynr.sh" ]; then
+        log_warn "未找到 bootstrap-merlynr.sh，跳过 Merlynr stack 初始化"
+        return 0
+    fi
+
+    log_info "运行 Merlynr bootstrap..."
+    chmod +x "$target_dir/script/bootstrap-merlynr.sh" 2>/dev/null || true
+    bash "$target_dir/script/bootstrap-merlynr.sh" "${BOOTSTRAP_EXTRA[@]}"
+}
+
 # 验证部署
 verify_deployment() {
     local target_dir=$1
@@ -221,9 +276,9 @@ print_summary() {
     echo "    - Scripts: $(ls "$target_dir/script/"*.py 2>/dev/null | wc -l) 个"
     echo ""
     echo "  下一步:"
-    echo "    1. cd $target_dir"
-    echo "    2. skillshare sync --all  # 同步 skills"
-    echo "    3. python3 script/gsd-team-engine.py --analyze '测试任务'  # 测试"
+    echo "    skillshare status"
+    echo "    skillshare doctor"
+    echo "    # UZI 试跑: python3 $target_dir/skills/uzi/_UZI-Skill/run.py 600519.SH --no-browser --depth lite"
     echo ""
     echo "  文档:"
     echo "    - README.md"
@@ -264,6 +319,9 @@ main() {
     
     # 同步 skills
     sync_skills "$target_dir"
+
+    # Merlynr stack（GSD base + UZI + OpenCode surface）
+    run_bootstrap "$target_dir"
     
     # 验证部署
     verify_deployment "$target_dir"

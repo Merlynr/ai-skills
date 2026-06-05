@@ -4,7 +4,11 @@
 param(
     [string]$Branch = "master",
     [string]$Username = "",
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NoBootstrap,
+    [switch]$WithL1,
+    [switch]$NoUzi,
+    [switch]$NoGsd
 )
 
 # 如果未提供用户名，自动检测当前 Windows 用户
@@ -207,6 +211,36 @@ function Sync-Skills {
     }
 }
 
+# Merlynr bootstrap (requires Git Bash or WSL bash on Windows)
+function Invoke-MerlynrBootstrap {
+    param([string]$TargetDir)
+
+    if ($NoBootstrap) {
+        Write-Info "跳过 bootstrap（-NoBootstrap）"
+        return
+    }
+
+    $bootstrap = Join-Path $TargetDir "script\bootstrap-merlynr.sh"
+    if (-not (Test-Path $bootstrap)) {
+        Write-Warn "未找到 bootstrap-merlynr.sh，跳过"
+        return
+    }
+
+    $bash = Get-Command bash -ErrorAction SilentlyContinue
+    if (-not $bash) {
+        Write-Warn "未找到 bash — 请手动运行: bash script/bootstrap-merlynr.sh"
+        return
+    }
+
+    $args = @()
+    if ($WithL1) { $args += "--with-l1" }
+    if ($NoUzi) { $args += "--no-uzi" }
+    if ($NoGsd) { $args += "--no-gsd" }
+
+    Write-Info "运行 Merlynr bootstrap..."
+    & bash $bootstrap @args
+}
+
 # 验证部署
 function Test-Deployment {
     param([string]$TargetDir)
@@ -268,7 +302,11 @@ function Show-Summary {
     Write-Host "    - Skills 已同步到各工具"
     Write-Host ""
     Write-Host "  验证:"
-    Write-Host "    skillshare status  # 查看同步状态"
+    Write-Host "    skillshare status"
+    Write-Host "    skillshare doctor"
+    Write-Host ""
+    Write-Host "  UZI 试跑 (Git Bash):"
+    Write-Host "    python skills/uzi/_UZI-Skill/run.py 600519.SH --no-browser --depth lite"
     Write-Host ""
     Write-Host "  文档:"
     Write-Host "    - README.md"
@@ -309,6 +347,9 @@ function Main {
     
     # 同步 skills
     Sync-Skills $targetDir
+
+    # Merlynr stack bootstrap
+    Invoke-MerlynrBootstrap $targetDir
     
     # 验证部署
     $valid = Test-Deployment $targetDir
