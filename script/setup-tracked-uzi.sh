@@ -7,6 +7,7 @@ skillshare install wbh604/UZI-Skill \
   --into uzi \
   --track \
   --force \
+  --kind skill \
   --skip-audit \
   --name _UZI-Skill
 
