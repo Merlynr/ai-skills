@@ -107,10 +107,13 @@ Handoff 块（交给 journal 时附带）：
 ## UZI 分析 handoff
 - ticker:
 - 深度: lite|medium|deep
-- 综合分 / 定调: （来自 synthesis.json）
-- 报告路径:
+- 综合分 / 定调: （来自 synthesis.json 或 reports/*/one-liner.txt）
+- 报告路径: `{UZI_ROOT}/skills/deep-analysis/scripts/reports/{TICKER}_{YYYYMMDD}/`
+- one-liner: （Read one-liner.txt 原文）
 - 用户关心的操作: （买/卖/观望）
 ```
+
+`stock-trade-journal` 写复盘时**自行**从 `reports/` 读最新报告（见 `stock-trade-journal/uzi-reports.md`），handoff 可加速但不可替代 Read。
 
 ## nmem 写入格式
 
