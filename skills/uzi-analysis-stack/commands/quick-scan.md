@@ -26,7 +26,7 @@ python3 run.py <TICKER> --no-browser --depth lite
 
 ### 4. 升级提示
 
-若用户追问细节 → 建议 medium：`/uzi:analyze-stock`
+若用户追问细节 → 建议 medium/full：`/uzi:analyze`（见 [analyze-stock.md](analyze-stock.md) U0）
 
 ## 上游
 

@@ -2,6 +2,8 @@
 
 UZI Analysis Stack 的工具与意图路由。**平台表为 SSOT**（`SKILL.md` 不重复展开）。
 
+> **深度 × 模式矩阵 SSOT** → 仅 [commands/analyze-stock.md § U0](commands/analyze-stock.md#u0--门控必须先输出再进-u2)。本节不重复该表，只保留 fast/full 概念与平台/专项/nmem。
+
 ## 按平台默认路径
 
 | 平台 | 记忆 | UZI 执行 | 读产物 |
@@ -11,9 +13,49 @@ UZI Analysis Stack 的工具与意图路由。**平台表为 SSOT**（`SKILL.md`
 | **OpenCode** | `read-working-memory` | Shell 或 explore 辅助查 ticker | Read |
 
 ```plaintext
-所有平台 → 先读本 stack SKILL.md → 解析 UZI_ROOT → 再跑 run.py
+所有平台 → 先读本 stack SKILL.md → 解析 UZI_ROOT → 选 fast|full → 执行
 禁止 → 不检查路径直接凭记忆写分析报告
+禁止 → full 模式跳过 agent_analysis.json 仍称「完整增强」
 ```
+
+## 执行模式：fast vs full
+
+| 模式 | 命令 | agent_analysis | synthesis | 适用 |
+|------|------|----------------|-----------|------|
+| **fast** | `run.py` 一键 | 无 | 骨架，`agent_reviewed: false` | lite/medium 速查、聊天摘要 |
+| **full** | stage1 → Agent JSON → stage2 | **有** | 增强，`agent_reviewed: true` | 持仓/成本价、deep、首次覆盖、要高质量 HTML |
+
+**路由规则（U0）** → 见 [analyze-stock.md § U0 矩阵](commands/analyze-stock.md#u0--门控必须先输出再进-u2)（**唯一 SSOT**，含 depth × mode 与 STOP 规则）。
+
+执行入口：[commands/analyze-stock.md](commands/analyze-stock.md)（fast / full / 补救统一）
+
+### Agent 超时规避（Windows / Cursor）
+
+| 步骤 | 执行者 | 耗时 |
+|------|--------|------|
+| stage1 或 run.py collect | **用户 PowerShell**（Agent 仅给命令） | 8–15 min |
+| 写 agent_analysis.json | **Cursor Agent** | 2–8 min |
+| stage2 | Agent 或用户（短） | 1–3 min |
+
+Agent **不要**单条 Shell 阻塞等待 medium 全量 `run.py`；应拆分或让用户本地跑 stage1。
+
+### full 模式验收（单次 run 技术项）
+
+- [ ] `.cache/<TICKER>/agent_analysis.json` 存在且 `agent_reviewed: true`
+- [ ] stage2 stdout 含「Agent 分析已加载」
+- [ ] 交付摘要标注 `执行模式: full`
+
+### 栈级回归（5 条，改 skill / 合并路由后必跑）
+
+完整用例与通过标准 → [commands/analyze-stock.md § 合并后验收](commands/analyze-stock.md#合并后验收5-条须全部通过)（**唯一清单**，本节不重复展开）。
+
+| # | 触发语 | 预期 |
+|---|--------|------|
+| 1 | 分析 600362 | U2-FAST · `agent_reviewed: false` |
+| 2 | 完整分析 600362 | U2-FULL · Agent 已加载 · `agent_reviewed: true` |
+| 3 | 先 1 再补救升级 | U2-FULL-REMEDIAL · 跳过 stage1 |
+| 4 | 快速看看 600362 | quick-scan.md · 不进 analyze |
+| 5 | 深度研究 + 误跑 `run.py --depth deep` | 仍 `false`；正确须 U0→full→U2-FULL |
 
 ## UZI_ROOT 解析
 
@@ -37,7 +79,7 @@ test -f "$UZI_ROOT/run.py" && echo "OK: $UZI_ROOT"
 |------|-----------|----------|------|
 | lite | `lite` | 速扫、初步风险 | 少维度 + Top 评委；见 quick-scan |
 | medium | `medium` | 常规「能不能买」 | 默认；完整 HTML 报告 |
-| deep | `deep` | 估值/IC/首次覆盖 | 机构建模 + 全评委 |
+| deep | `deep` | 估值/IC/首次覆盖 | 机构建模 + 全评委；**U0 默认 mode=full**（见 [analyze-stock § U0](commands/analyze-stock.md#u0--门控必须先输出再进-u2)） |
 
 环境变量：`export UZI_DEPTH=medium`（`--depth` 优先）。
 
@@ -108,6 +150,9 @@ UZI 分析 | 贵州茅台 | 72分 | 观望优先
 | ticker 无法解析 | 改用 `600519.SH` 格式 |
 | UZI_ROOT 不存在 | 运行 `./script/setup-tracked-uzi.sh` |
 | skillshare audit 拦安装 | 上游 install 用 `--skip-audit`（见 setup 脚本） |
+| `agent_reviewed: false` | [analyze-stock.md § U2-FULL-REMEDIAL](commands/analyze-stock.md#u2-full--stage1--agent-json--stage2仅-modefull) |
+| `_agent_analysis_errors.json` | Read [agent-analysis-schema.md](agent-analysis-schema.md) 修正后重跑 stage2 |
+| Agent Shell 超时 | stage1 用户本地跑；Agent 只做 JSON + stage2 |
 
 ## 升级
 

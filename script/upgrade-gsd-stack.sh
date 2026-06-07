@@ -12,12 +12,37 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SSOT="${SKILLSHARE_SKILLS:-$REPO_ROOT/skills}"
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+
+is_windows_env() {
+  case "${OS:-}${MSYSTEM:-}${OSTYPE:-}" in
+    *Windows_NT*|*MINGW*|*MSYS*|*CYGWIN*) return 0 ;;
+  esac
+  return 1
+}
+
+# MSYS2/Git Bash often set HOME=/home/user while Codex lives under USERPROFILE.
+resolve_codex_home() {
+  if [ -n "${CODEX_HOME:-}" ]; then
+    printf '%s\n' "$CODEX_HOME"
+    return
+  fi
+  if is_windows_env && [ -n "${USERPROFILE:-}" ]; then
+    local up="${USERPROFILE//\\//}"
+    if [[ "$up" =~ ^([A-Za-z]):/(.*) ]]; then
+      up="/$(printf '%s' "${BASH_REMATCH[1]}" | tr 'A-Z' 'a-z')/${BASH_REMATCH[2]}"
+    fi
+    printf '%s/.codex\n' "${up%/}"
+    return
+  fi
+  printf '%s/.codex\n' "$HOME"
+}
+
+CODEX_HOME="$(resolve_codex_home)"
 RUNTIME_DIR="$CODEX_HOME/get-shit-done"
 PATCHES_DIR="$CODEX_HOME/gsd-local-patches"
 BASE_DIR="$SSOT/base"
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
-BACKUP_DIR="$SSOT/base.backup.$TIMESTAMP"
+BACKUP_DIR="$REPO_ROOT/backups/gsd-base.$TIMESTAMP"
 
 DRY_RUN=0
 SKIP_L1=0
@@ -33,6 +58,32 @@ run() {
     log "$*"
     "$@"
   fi
+}
+
+# MSYS2 paths (/c/Users/...) break Windows Python when embedded in -c strings.
+resolve_py_path() {
+  local p="${1//\\//}"
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -m "$p"
+    return
+  fi
+  if [[ "$p" =~ ^/([a-zA-Z])/(.*)$ ]]; then
+    printf '%s:/%s\n' "$(printf '%s' "${BASH_REMATCH[1]}" | tr 'a-z' 'A-Z')" "${BASH_REMATCH[2]}"
+    return
+  fi
+  printf '%s\n' "$p"
+}
+
+run_python() {
+  local script_path="$1"
+  shift
+  run python3 "$(resolve_py_path "$script_path")" "$@"
+}
+
+python_script() {
+  local script_path="$1"
+  shift
+  python3 "$(resolve_py_path "$script_path")" "$@"
 }
 
 for arg in "$@"; do
@@ -68,7 +119,33 @@ backup_base_layer() {
   if [ "$DRY_RUN" -eq 1 ]; then
     return 0
   fi
+  mkdir -p "$(dirname "$BACKUP_DIR")"
   cp -a "$BASE_DIR" "$BACKUP_DIR"
+}
+
+# rsync is often missing on Windows MSYS2; cp -a is enough for skill trees.
+same_skill_path() {
+  local a b
+  a="$(cd "$1" 2>/dev/null && pwd -P)" || a="$1"
+  b="$(cd "$2" 2>/dev/null && pwd -P)" || b="$2"
+  [ "$a" = "$b" ]
+}
+
+sync_skill_dir() {
+  local src="$1" dest="$2"
+  if same_skill_path "$src" "$dest"; then
+    return 0
+  fi
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --backup --suffix=".bak.$TIMESTAMP" "$src/" "$dest/"
+  else
+    if [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null || true)" ]; then
+      cp -a "$dest" "${dest}.bak.$TIMESTAMP"
+    fi
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -a "$src/." "$dest/"
+  fi
 }
 
 read_l1_version() {
@@ -129,6 +206,11 @@ upgrade_l2_skills() {
   local skip='^(gsd-ns-context|gsd-ns-ideate|gsd-ns-manage|gsd-ns-project|gsd-ns-review|gsd-ns-workflow|gsd-team|gsd-do|gsd-fast|gsd-quick|gsd-update|gsd-reapply-patches)$'
 
   if [ "${#sources[@]}" -eq 0 ]; then
+    local existing=( "$BASE_DIR/gsd-"* )
+    if [ "${#existing[@]}" -gt 0 ]; then
+      warn "L2 vendored refresh skipped: no gsd-* under $CODEX_HOME/skills/ (using existing $BASE_DIR)"
+      return 0
+    fi
     die "L2 vendored refresh: no gsd-* skills under $CODEX_HOME/skills/"
   fi
 
@@ -140,12 +222,15 @@ upgrade_l2_skills() {
       continue
     fi
     dest="$BASE_DIR/$name"
+    if same_skill_path "$src" "$dest"; then
+      continue
+    fi
     src_count=$((src_count + 1))
     if [ "$DRY_RUN" -eq 1 ]; then
-      log "[dry-run] rsync $src → $dest"
+      log "[dry-run] sync $src → $dest"
     else
       mkdir -p "$dest"
-      rsync -a --backup --suffix=".bak.$TIMESTAMP" "$src/" "$dest/"
+      sync_skill_dir "$src" "$dest"
     fi
   done
 
@@ -155,9 +240,9 @@ upgrade_l2_skills() {
 apply_l3_overlay() {
   log "=== L3: Merlynr overlay ==="
   require_cmd python3
-  run python3 "$SCRIPT_DIR/add-gsd-metadata.py"
+  run_python "$SCRIPT_DIR/add-gsd-metadata.py"
   if [ -f "$SCRIPT_DIR/refine-gsd-tags.py" ]; then
-    run python3 "$SCRIPT_DIR/refine-gsd-tags.py" || warn "refine-gsd-tags.py failed (non-fatal)"
+    run_python "$SCRIPT_DIR/refine-gsd-tags.py" || warn "refine-gsd-tags.py failed (non-fatal)"
   fi
 }
 
@@ -179,17 +264,21 @@ sync_all_targets() {
 
 verify_upgrade() {
   log "=== Verify ==="
-  local l1 l2_count meta_count
+  local l1 l2_count meta_count py_script_dir py_ssot
+
+  py_script_dir="$(resolve_py_path "$SCRIPT_DIR")"
+  py_ssot="$(resolve_py_path "$SSOT")"
 
   l1="$(read_l1_version)"
-  l2_count="$(python3 - <<PY
-import sys
-sys.path.insert(0, "$SCRIPT_DIR")
-from _common import count_gsd_skills, resolve_gsd_base_dir
-print(count_gsd_skills(resolve_gsd_base_dir()))
-PY
-)"
-  meta_count="$(python3 -c "import importlib.util; p='$SCRIPT_DIR/add-gsd-metadata.py'; s=importlib.util.spec_from_file_location('m', p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print(len(m.GSD_METADATA))")"
+  l2_count="$(SKILLSHARE_SKILLS="$py_ssot" python_script "$SCRIPT_DIR/_common.py" 2>/dev/null || echo "?")"
+  meta_count="$(SKILLSHARE_SCRIPT_DIR="$py_script_dir" python3 -c "
+import os, importlib.util
+p = os.path.join(os.environ['SKILLSHARE_SCRIPT_DIR'], 'add-gsd-metadata.py')
+spec = importlib.util.spec_from_file_location('gsd_meta', p)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+print(len(mod.GSD_METADATA))
+" 2>/dev/null || echo "?")"
 
   log "L1 runtime VERSION: $l1"
   log "L2 gsd skills count: $l2_count (metadata entries: $meta_count)"
@@ -231,13 +320,23 @@ print_rollback_hint() {
 
 prune_stale_base_backups() {
   local d
+  # Legacy: backups lived under skills/ and broke skillshare discovery.
   for d in "$SSOT"/base.backup.*; do
+    [ -d "$d" ] || continue
+    if [ "$DRY_RUN" -eq 1 ]; then
+      log "[dry-run] rm -rf $d"
+    else
+      log "Removing legacy base backup (duplicate skill discovery): $d"
+      rm -rf "$d"
+    fi
+  done
+  for d in "$REPO_ROOT"/backups/gsd-base.*; do
     [ -d "$d" ] || continue
     [ "$d" = "$BACKUP_DIR" ] && continue
     if [ "$DRY_RUN" -eq 1 ]; then
       log "[dry-run] rm -rf $d"
     else
-      log "Removing stale base backup (duplicate skill discovery): $d"
+      log "Removing stale gsd-base backup: $d"
       rm -rf "$d"
     fi
   done
@@ -258,9 +357,9 @@ main() {
 
   upgrade_l2_skills
   apply_l3_overlay
-  sync_all_targets
-  verify_upgrade
   prune_stale_base_backups
+  sync_all_targets
+  verify_upgrade || warn "Verify step failed (non-fatal)"
   print_rollback_hint
 }
 

@@ -8,6 +8,9 @@ UZI 跑完后，向用户交付的**中文摘要**格式。数据必须来自 `s
 2. `${SCRIPTS_DIR}/.cache/<ticker>/panel.json` — 评委分数与分歧
 3. `${SCRIPTS_DIR}/reports/<ticker>_*/full-report-standalone.html` — 完整报告路径（告知用户）
 
+**full 模式额外核对**：`synthesis.json` 或 stage2 日志中 `agent_reviewed: true`；交付标注 **执行模式: full**。  
+**fast 模式**：`agent_reviewed: false` 为预期，标注 **执行模式: fast（骨架）**。
+
 `SCRIPTS_DIR="${UZI_ROOT}/skills/deep-analysis/scripts"`
 
 ## 标准摘要（medium / deep）
@@ -15,7 +18,7 @@ UZI 跑完后，向用户交付的**中文摘要**格式。数据必须来自 `s
 ```markdown
 ## UZI 分析 · {名称} ({代码})
 
-**深度**: {lite|medium|deep} · **日期**: {YYYY-MM-DD}
+**深度**: {lite|medium|deep} · **模式**: {fast|full} · **日期**: {YYYY-MM-DD}
 
 ### 一句话定调
 {观望优先 / 谨慎参与 / … — 来自 synthesis}

@@ -30,6 +30,12 @@
         "references/trash.md": "sha256:fb94aa6b71d469fa8f6b5e728fcab531b6eb010a2092389b02eaaadf3ebc98cf",
         "scripts/run.sh": "sha256:e434ebdb7d3ae0b37c00ddc36687bc975da9e766b8cb863f9aed9a624ebbdfa9"
       }
+    },
+    "uzi/_UZI-Skill": {
+      "source": "https://github.com/wbh604/UZI-Skill.git",
+      "tracked": true,
+      "group": "uzi",
+      "branch": "main"
     }
   }
 }
