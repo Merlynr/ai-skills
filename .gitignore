@@ -1,5 +1,6 @@
 # 本机激活的配置（由 config.linux.yaml / config.windows.yaml 生成）
 config.yaml
+config.yaml.bak
 
 # skillshare 运行时产物
 logs/
