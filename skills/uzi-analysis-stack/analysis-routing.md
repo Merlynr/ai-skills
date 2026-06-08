@@ -113,7 +113,7 @@ Handoff 块（交给 journal 时附带）：
 - 用户关心的操作: （买/卖/观望）
 ```
 
-`stock-trade-journal` 写复盘时**自行**从 `reports/` 读最新报告（见 `stock-trade-journal/uzi-reports.md`），handoff 可加速但不可替代 Read。
+`stock-trade-journal` 写复盘时**自行**读 UZI 证据（笔记库 `uzi-snapshots/` 优先，其次 `reports/`），读毕**归档到笔记库**（见 `stock-trade-journal/uzi-archive.md`）。handoff 可加速但不可替代 Read。
 
 ## nmem 写入格式
 

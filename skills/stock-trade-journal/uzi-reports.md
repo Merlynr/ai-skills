@@ -2,9 +2,25 @@
 
 复盘时**必须用 UZI 盘面证据**交叉验证用户口述，禁止只凭用户描述或记忆写「盘面核对」。
 
+**读完必须归档** → [uzi-archive.md](uzi-archive.md)（`04-实操日志/uzi-snapshots/`），避免 APPDATA 缓存被删后证据丢失。
+
 ---
 
-## 1. 报告根目录（按优先级解析）
+## 0. 读取总优先级（第 1.11 步）
+
+| 优先级 | 来源 | 读什么 |
+|:------:|------|--------|
+| **1** | 笔记库 `04-实操日志/uzi-snapshots/{TICKER}/{YYYYMMDD}/` | `snapshot.json` + `one-liner.txt`（复盘 SSOT） |
+| 2 | APPDATA `reports/{TICKER}_{date}/` | `one-liner.txt` + HTML 关键字段 |
+| 3 | APPDATA `.cache/{TICKER}/` | `raw_data.json` + `synthesis.json` |
+
+从 **2 或 3** 读到 → **同一回合执行第 1.11a 归档**（`scripts/archive_uzi_snapshot.py`）。
+
+笔记库路径默认：`f:/note/20 Projects/天才交易员/04-实操日志/uzi-snapshots/`
+
+---
+
+## 1. 报告根目录（live · 优先级 2）
 
 | 优先级 | 路径 |
 |:------:|------|
@@ -46,9 +62,10 @@
 
 | 顺序 | 文件 | 提取字段 |
 |:----:|------|----------|
+| 0 | `uzi-snapshots/{TICKER}/{date}/snapshot.json` | 见 [uzi-archive.md §2](uzi-archive.md)（笔记库已有则优先） |
 | 1 | `{文件夹}/one-liner.txt` | 评分、定调、DCF 一句话、杀猪盘 |
-| 2 | `{文件夹}/full-report-standalone.html` | 用 Grep/Read 抽：`class="price"`、`score-giant`、`score-verdict`、`battle-plan` 四行、`punchline`、`safety-card`、RISKS 格、龙虎榜次数、DCF 目标价 |
-| 3（可选） | `.cache/{TICKER}/raw_data.json` | `fetched_at`、`dimensions.0_basic.data`（现价/涨跌）、近 5 日日 K（`date` 06-xx） |
+| 2 | `{文件夹}/full-report-standalone.html` | 用 Grep/Read 抽：`class="price"`、`score-giant`、`score-verdict`、`battle-plan` 四行、`punchline`、龙虎榜次数 |
+| 3（可选） | `.cache/{TICKER}/raw_data.json` | `dimensions.0_basic.data`、日 K、`synthesis.json` |
 
 **禁止**：未打开报告/cache 就写「UZI 显示…」；禁止编造现价、评分、龙虎榜次数。
 
@@ -111,14 +128,16 @@ year_high              → 年内高点（若有）
 
 ---
 
-## 8. 写回持仓/存档（可选 · 多日标的时）
+## 8. 写回持仓/存档
 
-若当日涉及 ≥2 只持仓变动，更新或链到：
+**强制**（第 1.11a 步）：每只涉及标的归档至 `uzi-snapshots/` — 见 [uzi-archive.md](uzi-archive.md)。
+
+**可选汇总**（≥2 只或持仓变动时）：
 
 - `04-实操日志/00-当前持仓对照.md` §五「明日一条」  
-- 或新建/更新 `04-实操日志/00-UZI{N}股分析-{最新报告日期}.md`（四股存档格式见既有笔记）
+- `04-实操日志/00-UZI{N}股分析-{最新报告日期}.md`（人类可读；**底部链** `uzi-snapshots/`）
 
-frontmatter `source_uzi` 填报告日期后缀。
+frontmatter `source_uzi` 填报告日期后缀；日志 `uzi_snapshots` 列归档路径。
 
 ---
 

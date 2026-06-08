@@ -284,6 +284,6 @@ docs(flowcollect): update module agent after merge perf investigation
 | Stack | 何时 |
 |-------|------|
 | **uzi-analysis-stack** | 个股分析、估值、DCF、杀猪盘（读 `{SSOT}/uzi-analysis-stack/SKILL.md`） |
-| **stock-trade-journal** | 收盘实操反思、铁律、课程对齐 |
+| **stock-trade-journal** | 收盘实操反思、铁律、课程对齐；UZI 证据归档至笔记库 `uzi-snapshots/` |
 
 开发任务走本 stack；股票研究勿默认走 GSD discuss。

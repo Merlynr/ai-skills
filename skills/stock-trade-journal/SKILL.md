@@ -2,9 +2,9 @@
 name: stock-trade-journal
 description: >-
   为天才交易员项目生成每日股票实操反思：Read 铁律与上篇日志后先输出评价基准；
-  从 UZI reports（skills/uzi/.../deep-analysis/scripts/reports）读取涉及标的的
-  最新深度分析报告，结合用户口述/截图与盘面数据写盘面核对与总结；
-  写入 04-实操日志 后按课程内容输出后续操作建议、能力缺陷与学习补强。
+  从 UZI 读取涉及标的最新分析（优先笔记库 uzi-snapshots，其次 APPDATA reports）；
+  读毕必须归档到 04-实操日志/uzi-snapshots 防缓存丢失；结合用户口述写盘面核对；
+  写入实操日志后输出后续操作建议、能力缺陷与学习补强。
   用于实操日志、交易反思、收盘复盘、后续操作怎么卖、该学什么、UZI 报告对照。
 ---
 
@@ -13,10 +13,10 @@ description: >-
 ## 目标
 
 1. 生成或更新：`20 Projects/天才交易员/04-实操日志/YYYY-MM-DD 实操反思.md`
-2. **UZI 证据优先**：涉及股票从 [uzi-reports.md](uzi-reports.md) 指定目录读最新报告，再与用户描述交叉验证
+2. **UZI 证据优先**：涉及股票从 [uzi-reports.md](uzi-reports.md) 读取；读毕 **归档到笔记库** [uzi-archive.md](uzi-archive.md)
 3. 笔记写完后输出：**后续操作建议** + **能力缺陷** + **加强学习清单**（对齐课程与任务板）
 
-登记标准：`04-实操日志/README.md` · 模板：`_模板-每日实操与反思.md` · 路由：[course-routing.md](course-routing.md) · UZI：[uzi-reports.md](uzi-reports.md)
+登记标准：`04-实操日志/README.md` · 模板：`_模板-每日实操与反思.md` · 路由：[course-routing.md](course-routing.md) · UZI 读取：[uzi-reports.md](uzi-reports.md) · UZI 归档：[uzi-archive.md](uzi-archive.md)
 
 笔记库根：当前 workspace 为 `f:/note` 时用相对路径；否则用 `f:/note/20 Projects/天才交易员/...`。
 
@@ -40,8 +40,9 @@ description: >-
 | 1.8 | Read `股票投资系统学习任务.md` | **仅**「进度仪表盘 + 当前阶段章节 + 第一个未勾选项」 |
 | 1.9 | 无上篇日志 | 用学习清单/日计划中的「只观察」等为期望参照 |
 | **1.10** | **收集今日标的列表** | 用户口述 + 截图 + 上篇持仓 `symbols`；含已清仓/仅观察 |
-| **1.11** | **读 UZI 报告（每只）** | 按 [uzi-reports.md](uzi-reports.md)：解析 reports 根目录 → 最新 `{TICKER}_{date}/` → Read `one-liner.txt` + Grep/Read HTML 关键字段；无报告则 `.cache/raw_data.json` |
-| **1.12** | **（可选）** Read `00-当前持仓对照.md` | 对照既有铁律执行单与 UZI 存档链接 |
+| **1.11** | **读 UZI 证据（每只）** | 按 [uzi-reports.md](uzi-reports.md) **笔记库优先** → 缺则 APPDATA reports/cache |
+| **1.11a** | **归档 UZI 到笔记库（每只·强制）** | 按 [uzi-archive.md](uzi-archive.md) 跑 `scripts/archive_uzi_snapshot.py {TICKER}`；失败则手工复制 one-liner + 写 `snapshot.json` |
+| **1.12** | **（可选）** Read `00-当前持仓对照.md` | 对照既有铁律执行单与 `uzi-snapshots/` 链接 |
 
 #### 上篇查找算法
 
@@ -86,11 +87,18 @@ description: >-
 
 规则：
 
-- 每一只当日涉及的标的**至少一行**；数据来自第 1.11 步，**禁止**未读报告就填「UZI 显示」  
+- 每一只当日涉及的标的**至少一行**；数据来自第 1.11 步（笔记库 `snapshot.json` 或 live 报告），**禁止**未读就填「UZI 显示」  
 - 用户截图中的成本/盈亏与报告现价可同时引用  
 - 「朋友推荐/价投叙事」标为用户信源，用 UZI 基本面/评委/杀猪盘反驳或印证  
 
-**§八 关联** 须链 UZI 报告路径（相对或 `file:///`）及 `[[00-当前持仓对照]]` / `[[00-UZI*股分析*]]`（若存在）。
+**§八 关联** 须链 **笔记库归档** `[[uzi-snapshots/{TICKER}/{date}/snapshot]]`（主）；APPDATA HTML 可作辅链并标注「可能过期」。另链 `[[00-当前持仓对照]]` / `[[00-UZI*股分析*]]`。
+
+日志 frontmatter 增加（有归档时）：
+
+```yaml
+uzi_snapshots:
+  - "600121.SH/20260608"
+```
 
 填写模板 **「九、课程对齐 · 后续建议」** 骨架（可先占位，第 5 步补全）。
 
@@ -101,7 +109,7 @@ description: >-
 ### 第 4 步：登记收尾（简短）
 
 - 文件路径 · 效果/执行/综合一行 · 相对上篇预期 · 连续违规编号  
-- **一行 UZI**：已对照 {N} 只 · 报告截至 {最新日期} · 缺报告标的列表（若有）
+- **一行 UZI**：已对照 {N} 只 · 报告截至 {最新日期} · **已归档** {N} 只至 `uzi-snapshots/` · 缺报告列表（若有）
 
 ---
 
@@ -150,7 +158,8 @@ description: >-
 
 - 将 5.2 写入当日 `## 九、课程对齐 · 后续建议`  
 - **同步** `04-实操日志/00-当前持仓对照.md` §五「明日一条」与 §三各股执行单（持仓有变时）  
-- 若 ≥3 只且需留档：更新 `00-UZI{N}股分析-{日期}.md` 或链到既有存档  
+- **确认** 第 1.11a 步归档完成；更新 `uzi-snapshots/README.md` 索引  
+- 若 ≥3 只且需留档：更新 `00-UZI{N}股分析-{日期}.md`，底部链 `uzi-snapshots/{TICKER}/{date}/`  
 
 #### 5.4 原则
 
@@ -167,7 +176,9 @@ description: >-
 |----|------|
 | 日志 | `04-实操日志/YYYY-MM-DD 实操反思.md` |
 | 铁律 | `01-基础知识-学习笔记/07-非对称风险-笔记.md` |
-| UZI 报告 | 见 [uzi-reports.md](uzi-reports.md) |
+| UZI 读取 | 见 [uzi-reports.md](uzi-reports.md) |
+| **UZI 归档（笔记库）** | `04-实操日志/uzi-snapshots/{TICKER}/{YYYYMMDD}/` · 见 [uzi-archive.md](uzi-archive.md) |
+| 归档脚本 | `scripts/archive_uzi_snapshot.py` |
 | 持仓执行单 | `04-实操日志/00-当前持仓对照.md` |
 | 路由表 | [course-routing.md](course-routing.md) |
 | 速查 | [iron-rules.md](iron-rules.md) |
@@ -176,8 +187,9 @@ description: >-
 
 ## 禁止
 
-- 未 Read 铁律、课程、**UZI 报告/cache** 就写盘面核对或价位建议  
-- 未读 `one-liner.txt` 就概括 UZI 结论  
+- 未 Read 铁律、课程、**UZI 证据**（vault 或 APPDATA）就写盘面核对或价位建议  
+- 未读 `one-liner.txt` / `snapshot.json` 就概括 UZI 结论  
+- **跳过第 1.11a 归档**（从 APPDATA 读到数据却不写入笔记库）  
 - STOP 后写日志或做第 5 步  
 - 第 5 步无笔记/任务/UZI 依据的空话建议  
 - 综合等级 B/C 摇摆；无事实编造成交或现价  
