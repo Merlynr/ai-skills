@@ -104,7 +104,25 @@ Team Brief（`team-brief.json`）字段：
   "dispatch_hints": {
     "skip_roles": ["implementer", "architect"],
     "include_debug": true,
-    "scope_summary": "modules/ISMS/flowcollect/"
+    "scope_summary": "modules/ISMS/flowcollect/",
+    "merlynr_handoff": ".planning/merlynr-handoff.json",
+    "required_roles": ["architect", "implementer", "reviewer"],
+    "manual_subagents": [
+      {
+        "name": "interface-designer",
+        "role": "接口设计",
+        "phase": "plan",
+        "prompt": "冻结 INTERFACE.md，不写实现",
+        "skills": ["merlynr-dev"]
+      },
+      {
+        "name": "tester",
+        "role": "独立测试",
+        "phase": "verify",
+        "prompt": "依据 Handoff/SPEC 写测试，不依赖 implementer 解释",
+        "skills": ["gsd-add-tests", "merlynr-dev"]
+      }
+    ]
   },
   "persist_target": "modules/ISMS/flowcollect/AGENTS.md",
   "persist_grade": "L",
@@ -115,6 +133,9 @@ Team Brief（`team-brief.json`）字段：
 | 字段 | 说明 |
 |------|------|
 | `dispatch_hints.skip_roles` | 生成团队时**不创建**的成员（见下表） |
+| `dispatch_hints.required_roles` | 文档约定；与 skip 冲突时 triage-lead 须调整 |
+| `dispatch_hints.manual_subagents` | **v2**：额外成员（接口/测试等）；见 [merlynr-dev/handoff-schema.md](../merlynr-dev/handoff-schema.md) |
+| `dispatch_hints.merlynr_handoff` | 可选，指向 merlynr-handoff.json |
 | `persist_target` | 主模块 `AGENTS.md`；默认由 `evidence.modules[0]` 推导 |
 | `persist_grade` | `M` 或 `L` |
 | `persist_sections` | Phase 4.5 写回章节 |
@@ -350,8 +371,9 @@ python3 ~/.config/skillshare/script/gsd-team-engine.py "任务描述" --generate
 | 谁先谁后？ | 开任务先 **merlynr-dev-stack** 分级；L 级 Phase 3 才进 **gsd-team** |
 | 谁写模块 AGENTS？ | **merlynr Phase 4.5** 定规范；gsd-team Brief 只标 `persist_target` |
 | M 级用 team 吗？ | 默认否；用 merlynr + `gsd-quick`；组 team 时仍走 Step 7.5 写回 |
+| Agent 独立性？ | triage-lead 按 [merlynr-dev/agent-roles.md](../merlynr-dev/agent-roles.md) 安排；接口/测试用 manual subagent |
 
-详见 [merlynr-dev-stack/SKILL.md](../merlynr-dev-stack/SKILL.md)。
+详见 [merlynr-dev-stack/SKILL.md](../merlynr-dev-stack/SKILL.md)、[merlynr-dev/SKILL.md](../merlynr-dev/SKILL.md)。
 
 ## 注意事项
 

@@ -8,8 +8,8 @@ This file is generated from all files under .planning/codebase.
 - project_name: skillshare
 - session_mode: new
 - compile_commands: not_applicable
-- cymbal_warmup: timed_out
-- cymbal_summary: timed out after 8 seconds
+- cymbal_warmup: succeeded
+- cymbal_summary: Done in 6.146s — 746 indexed, 1807 symbols, 515 unchanged
 
 ## Code Navigation
 

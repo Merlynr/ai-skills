@@ -891,6 +891,54 @@ class TeamEngine:
         roles = hints.get("skip_roles") or brief.get("skip_roles") or []
         return {str(role).lower().strip() for role in roles if role}
 
+    def _required_roles_from_brief(self, brief: Optional[Dict]) -> List[str]:
+        if not brief:
+            return []
+        hints = brief.get("dispatch_hints") or {}
+        roles = hints.get("required_roles") or brief.get("required_roles") or []
+        return [str(role).lower().strip() for role in roles if role]
+
+    def _manual_subagents_from_brief(self, brief: Optional[Dict]) -> List[Dict]:
+        if not brief:
+            return []
+        hints = brief.get("dispatch_hints") or {}
+        agents = hints.get("manual_subagents") or brief.get("manual_subagents") or []
+        if not isinstance(agents, list):
+            return []
+        normalized = []
+        for item in agents:
+            if not isinstance(item, dict):
+                continue
+            name = (item.get("name") or "").strip()
+            if not name:
+                continue
+            normalized.append(item)
+        return normalized
+
+    def _append_manual_subagents(self, members: List[Dict], manual_subagents: List[Dict], task_desc: str) -> None:
+        for item in manual_subagents:
+            name = (item.get("name") or "manual-agent").strip()
+            role = item.get("role") or name
+            phase = (item.get("phase") or "plan").strip().lower()
+            if phase not in ("triage", "plan", "implement", "verify", "debug"):
+                phase = "plan"
+            prompt = item.get("prompt") or f"{role}：{task_desc}"
+            skills = item.get("skills") or ["merlynr-dev"]
+            if isinstance(skills, str):
+                skills = [skills]
+            members.append({
+                "name": name,
+                "role": role,
+                "phase": phase,
+                "kind": "subagent_type",
+                "subagent_type": item.get("subagent_type") or "oracle",
+                "prompt": prompt,
+                "skills": skills,
+                "skill_purpose": item.get("skill_purpose") or "merlynr-dev manual_subagent",
+                "tool_chain": self._get_combined_tool_chain(skills),
+                "manual": True,
+            })
+
     def _role_skipped(self, role_name: str, skip_roles: set) -> bool:
         return role_name.lower() in skip_roles
 
@@ -1063,11 +1111,19 @@ class TeamEngine:
                 "tool_chain": self._get_combined_tool_chain(debug_skills),
             })
 
+        manual_subagents = self._manual_subagents_from_brief(brief)
+        if manual_subagents:
+            self._append_manual_subagents(members, manual_subagents, task_desc)
+
+        required_roles = self._required_roles_from_brief(brief)
+        present_roles = {m.get("name", "").lower() for m in members}
+        missing_required = [r for r in required_roles if r not in present_roles and not self._role_skipped(r, skip_roles)]
+
         phases = self._workflow_phases_from_members(members) if brief else ["plan", "implement", "verify"]
         config = {
             "name": team_name,
             "task": task_desc,
-            "version": "3.2" if brief else "3.0",
+            "version": "3.3" if brief else "3.0",
             "engine": "skill-aware+triage" if brief else "skill-aware",
             "created_at": None,
             "members": members,
@@ -1077,6 +1133,9 @@ class TeamEngine:
                 "max_concurrent": 4,
                 "feedback_loop": True,
                 "skip_roles": sorted(skip_roles) if skip_roles else [],
+                "required_roles": required_roles,
+                "missing_required_roles": missing_required,
+                "manual_subagents": [a.get("name") for a in manual_subagents],
             },
             "intent_analysis": {
                 "primary_skill": intent["primary_skill"],
@@ -1349,6 +1408,12 @@ def print_team_summary(config: Dict, analysis: Dict = None):
     skip_roles = config.get("workflow", {}).get("skip_roles") or []
     if skip_roles:
         print(f"  跳过角色: {', '.join(skip_roles)}")
+    missing = config.get("workflow", {}).get("missing_required_roles") or []
+    if missing:
+        print(f"  ⚠ 缺少 required_roles: {', '.join(missing)}")
+    manual = config.get("workflow", {}).get("manual_subagents") or []
+    if manual:
+        print(f"  manual_subagents: {', '.join(manual)}")
     print(f"  匹配 Skills: {', '.join(config['intent_analysis']['matched_skills'][:5])}")
     print("=" * 70)
 

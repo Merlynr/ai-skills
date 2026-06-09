@@ -12,6 +12,7 @@ targets:
       path: /root/.agents/skills
       include: &facade_skills
         - "merlynr-dev-stack"
+        - "merlynr-dev"
         - "uzi-analysis-stack"
         - "gsd-ns-*"
         - "gsd-team"

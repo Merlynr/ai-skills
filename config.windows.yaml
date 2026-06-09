@@ -13,6 +13,7 @@ targets:
       path: C:/Users/101202106068/.agents/skills
       include: &facade_skills
         - "merlynr-dev-stack"
+        - "merlynr-dev"
         - "uzi-analysis-stack"
         - "gsd-ns-*"
         - "gsd-team"
