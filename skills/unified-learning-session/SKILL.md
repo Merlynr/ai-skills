@@ -114,19 +114,51 @@ nmem m search "学习计划" -l $learning_type -n 10
 
 ### Phase 3: 学习过程
 
-#### 3.1 题目处理流程
+#### 3.1 题目编号识别规则
+
+**自动识别用户输入中的题目编号**，用于学习进度追踪和题目关联。
+
+**支持的编号格式：**
+
+| 格式 | 示例 | 提取结果 |
+| --- | --- | --- |
+| `第N题` | 第5题、第12题 | `5`、`12` |
+| `题目N` | 题目3、题目27 | `3`、`27` |
+| `QN` | Q8、Q15 | `8`、`15` |
+| `N.` | 3.、15. | `3`、`15` |
+| `N、` | 3、15、 | `3`、`15` |
+| `(N)` | (3)、(15) | `3`、`15` |
+| `【N】` | 【3】、【15】 | `3`、`15` |
+| `题号：N` | 题号：3 | `3` |
+| `编号N` | 编号3 | `3` |
+| `No.N` | No.3、NO.15 | `3`、`15` |
+
+**识别规则：**
+1. **优先匹配**：从用户输入的前 100 个字符中识别题目编号
+2. **多编号处理**：若检测到多个编号，询问用户确认主编号
+3. **无编号处理**：若未检测到编号，使用会话内的自动递增序号（`第N题`）
+4. **编号验证**：识别到的编号必须为正整数，否则忽略
+
+**识别流程：**
+```
+用户输入 → 正则匹配编号格式 → 提取编号 → 验证有效性 → 返回 question_id
+```
+
+#### 3.2 题目处理流程
 
 无论是**错题**还是**对题**，都需要提取知识点并归档到对应章节。
 
 **处理步骤：**
 
 ```
-- [ ] 复制截图 → assets/YYYY-MM-DD/第N题-简述.png（有图必存，学习记录嵌入 ![[assets/...]]）
-- [ ] 记录题目到学习记录（错题/对题），标题用 ## 第N题（章节 · 考点）供锚点跳转
+- [ ] 识别题目编号（见 3.1），得到 question_id
+- [ ] 复制截图 → assets/YYYY-MM-DD/{question_id}-简述.png（有图必存，学习记录嵌入 ![[assets/...]]）
+- [ ] 记录题目到学习记录（错题/对题），标题用 ## 第{question_id}题（章节 · 考点）供锚点跳转
 - [ ] **全量提取**：题干 + **全部选项 A/B/C/D** 逐条归纳（见 3.4 Step 1，禁止只写正确项）
 - [ ] 概念不清时 **联网查询** 权威定义/对比，再写入知识点（见 3.4 Step 1.2）
 - [ ] 将考点追加到对应章节的知识点文件（相关题目须链回学习记录，见 3.4）
 - [ ] 更新学习记录中的知识点索引（双向双链，见 3.4 Step 4）
+- [ ] 更新学习进度记录（见 3.6）
 - [ ] 写入 nmem（Windows 优先 MCP memory_add，勿用 PowerShell 管道 --stdin）
 ```
 
@@ -135,7 +167,8 @@ nmem m search "学习计划" -l $learning_type -n 10
 ```markdown
 ## 错题记录
 
-### 第N题（章节 · 考点）
+### 第{question_id}题（章节 · 考点）
+- 题目编号: {question_id}（用户输入或自动递增）
 - 题目: [题目内容]
 - 选项: [选项]
 - 你的答案: [答案]
@@ -156,7 +189,8 @@ nmem m search "学习计划" -l $learning_type -n 10
 ```markdown
 ## 对题记录
 
-### 第N题（章节 · 考点）
+### 第{question_id}题（章节 · 考点）
+- 题目编号: {question_id}（用户输入或自动递增）
 - 题目: [题目内容]
 - 选项: [选项]
 - 正确答案: [答案]
@@ -295,33 +329,99 @@ nmem m search "学习计划" -l $learning_type -n 10
 - 同一题目涉及多个考点：分别追加到各考点
 - 错题和对题混合：统一归档，通过标签区分
 
-#### 3.5 实时 nmem 记录
+#### 3.5 学习进度追踪
+
+**基于题目编号追踪学习进度**，支持查看已完成题目、未完成题目、错题分布等。
+
+**进度记录文件：**
+```
+20 Projects/$learning_type/学习进度.md
+```
+
+**进度文件格式：**
+```markdown
+# [$learning_type] 学习进度
+
+## 总体进度
+- 总题目数: [已知最大编号]
+- 已完成: [数量]
+- 正确: [数量]
+- 错误: [数量]
+- 完成率: [百分比]
+
+## 题目状态
+
+| 编号 | 状态 | 日期 | 类型 | 考点 |
+| --- | --- | --- | --- | --- |
+| 1 | ✅ 正确 | 2025-01-15 | 对题 | [[考点1]] |
+| 2 | ❌ 错误 | 2025-01-15 | 错题 | [[考点2]] |
+| 3 | ⏳ 待做 | - | - | - |
+| 5 | ✅ 正确 | 2025-01-16 | 对题 | [[考点3]] |
+
+## 编号分布
+- 已做题目编号: 1, 2, 5, 8, 12
+- 缺号（未做）: 3, 4, 6, 7, 9, 10, 11
+- 建议下一题: 3（最小未做编号）
+
+## 错题编号列表
+- 2, 7, 15
+
+## 最近完成
+- 最近 5 题: 12(✅), 8(✅), 7(❌), 5(✅), 2(❌)
+- 连续正确: 2 题
+- 最大连续正确: 5 题
+```
+
+**进度更新流程：**
+1. 识别题目编号后，检查是否已存在于进度文件
+2. 若已存在且为「⏳ 待做」，更新状态为「✅ 正确」或「❌ 错误」
+3. 若不存在，新增记录
+4. 更新统计数据（总数、完成率、连续正确等）
+5. 更新「缺号」列表和「建议下一题」
+
+**进度查询命令：**
+```markdown
+用户: "查看学习进度" → 显示进度文件内容
+用户: "哪些题没做" → 显示缺号列表
+用户: "错题有哪些" → 显示错题编号列表
+用户: "下一题做哪个" → 显示建议下一题
+```
+
+#### 3.6 实时 nmem 记录
 
 **Windows 写入 nmem**：优先 **MCP `memory_add`**（`id` upsert、UTF-8 正文）；**禁止** `$text | nmem m add --stdin`（易中文乱码）。高软简报详见 `gaoruan-study-session` §D。
 
 ```bash
-# 错题记录到 nmem
-nmem m add "错题: $question\n正确答案: $answer\n错因: $reason\n考点: $knowledge_point" \
-  -t "错题记录: $learning_type" \
+# 错题记录到 nmem（含题目编号）
+nmem m add "题目编号: $question_id\n错题: $question\n正确答案: $answer\n错因: $reason\n考点: $knowledge_point" \
+  -t "错题记录: $learning_type 第${question_id}题" \
   --unit-type learning \
   -i 0.6 \
-  -l $learning_type,study,wrong-answer \
+  -l $learning_type,study,wrong-answer,qid-$question_id \
   -s unified-learning
 
-# 对题记录到 nmem
-nmem m add "对题: $question\n正确答案: $answer\n考点: $knowledge_point" \
-  -t "对题记录: $learning_type" \
+# 对题记录到 nmem（含题目编号）
+nmem m add "题目编号: $question_id\n对题: $question\n正确答案: $answer\n考点: $knowledge_point" \
+  -t "对题记录: $learning_type 第${question_id}题" \
   --unit-type learning \
   -i 0.5 \
-  -l $learning_type,study,correct-answer \
+  -l $learning_type,study,correct-answer,qid-$question_id \
   -s unified-learning
 
 # 知识点记录到 nmem（汇总）
-nmem m add "章节: 第N章\n考点: $knowledge_point\n题目数: N" \
+nmem m add "章节: 第N章\n考点: $knowledge_point\n题目数: N\n涉及题目编号: $question_ids" \
   -t "知识点: $knowledge_point" \
   --unit-type knowledge \
   -i 0.7 \
   -l $learning_type,knowledge-point \
+  -s unified-learning
+
+# 学习进度记录到 nmem
+nmem m add "学习进度: 已完成 $completed/$total 题\n正确率: $accuracy%\n最近完成: 第${question_id}题" \
+  -t "学习进度: $learning_type" \
+  --unit-type learning \
+  -i 0.4 \
+  -l $learning_type,study-progress,qid-$question_id \
   -s unified-learning
 ```
 
@@ -440,6 +540,7 @@ nmem m add "学习汇总内容" \
 - `knowledge-point` - 知识点
 - `learning-plan` - 学习计划
 - `study-progress` - 学习进度
+- `qid-$question_id` - 题目编号（如 `qid-5` 表示第 5 题）
 
 ### 记忆类型
 
@@ -465,6 +566,15 @@ nmem m search "学习简报" -l $learning_type -n 10
 
 # 查询特定日期
 nmem m search "YYYY-MM-DD" -l $learning_type
+
+# 查询特定题目编号
+nmem m search "第5题" -l $learning_type,qid-5
+
+# 查询所有错题（按编号）
+nmem m search "错题记录" -l $learning_type,wrong-answer -n 50
+
+# 查询学习进度
+nmem m search "学习进度" -l $learning_type,study-progress -n 5
 ```
 
 ## 相关命令
@@ -487,6 +597,18 @@ nmem m search "YYYY-MM-DD" -l $learning_type
 
 # 生成学习简报
 生成学习简报
+
+# 查看学习进度
+查看学习进度
+
+# 查询哪些题没做
+哪些题没做
+
+# 查询错题有哪些
+错题有哪些
+
+# 查询下一题做哪个
+下一题做哪个
 ```
 
 ## 注意事项
@@ -503,3 +625,5 @@ nmem m search "YYYY-MM-DD" -l $learning_type
 10. **知识点整理**: 错题和对题都必须提取知识点，归档到对应章节
 11. **简报生成**: 每次学习结束必须生成 nmem 简报
 12. **计划同步**: 同步本地计划和 nmem 统计
+13. **题目编号识别**: 自动识别用户输入中的题目编号（支持多种格式），用于学习进度追踪和题目关联
+14. **学习进度追踪**: 基于题目编号追踪学习进度，支持查看已完成、未完成、错题分布等
