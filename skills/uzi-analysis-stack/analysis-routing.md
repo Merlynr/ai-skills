@@ -92,6 +92,11 @@ test -f "$UZI_ROOT/run.py" && echo "OK: $UZI_ROOT"
 | **龙虎榜** | Read `{UZI_ROOT}/skills/lhb-analyzer/SKILL.md` | 独立 skill，非 run.py 主路径 |
 | **评委团 only** | Read `{UZI_ROOT}/skills/investor-panel/SKILL.md` | panel-only 场景 |
 | **对比两只** | `run.py --versus 茅台 五粮液 --depth lite` | 见 UZI README |
+| **AI 就绪度** | `run.py <ticker> --depth deep` + 读 ai-readiness 输出 | v3.8.0 新增 |
+| **财报预览** | `run.py <ticker> --depth deep` + 读 earnings-preview 输出 | v3.8.0 新增 |
+| **模型更新** | `run.py <ticker> --depth deep` + 读 model-update 输出 | v3.8.0 新增 |
+| **组合收益** | `run.py <ticker> --depth deep` + 读 returns 输出 | v3.8.0 新增 |
+| **再平衡** | `run.py <ticker> --depth deep` + 读 rebalance 输出 | v3.8.0 新增 |
 
 ## 与 stock-trade-journal 的分工
 

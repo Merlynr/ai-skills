@@ -56,7 +56,7 @@ ${UZI_ROOT}/skills/deep-analysis/scripts/.cache/<TICKER>/agent_analysis.json
     "10_valuation": "…PE/PB/分位…",
     "18_trap": "…杀猪盘等级与依据…"
   },
-  "panel_insights": "51评委中看多X人、看空Y人；价值派…技术派…共识Z%。",
+  "panel_insights": "66评委中看多X人、看空Y人；价值派…技术派…共识Z%。",
   "great_divide_override": {
     "punchline": "…含数字的冲突金句…",
     "bull_say_rounds": ["…", "…", "…"],
