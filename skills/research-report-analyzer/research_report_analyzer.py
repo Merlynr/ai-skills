@@ -1,23 +1,24 @@
-"""
-Research Report Analyzer (研报批量分析器)
-==========================================
-批量处理 PDF 研报，通过 LLM 提取结构化投资洞察，输出 JSON 格式结果。
+﻿"""
+Research Report Analyzer (研报批量分析器) — AI-Native 版本
+===========================================================
+轻量级 PDF 文本提取工具，零 API 依赖。
+提取的格式化文本直接喂给 AI 进行分析，无需单独申请 API Key。
 
-改进点（相比原始版本）：
-1. 逐份分析再汇总，避免 Token 溢出
-2. 错误隔离：单份 PDF 失败不中断整体流程
-3. 结果持久化：JSON + Markdown 双格式输出
-4. 可配置模型：支持 OpenAI / DeepSeek / Claude / 本地模型
-5. API 重试机制：应对瞬时错误
+核心变化（相比 API 版本）：
+1. 移除 openai / pydantic 依赖
+2. 只做 PDF 文本提取 + 格式化输出
+3. 分析工作交给调用方的 AI（Claude / GPT / DeepSeek 等）
+4. 输出为纯文本 + JSON 元数据，方便 AI 读取
 
 用法:
     python research_report_analyzer.py <directory_or_files> [-o OUTPUT_DIR]
+    
+    提取完成后，将生成的 .txt 文件内容复制到 AI 对话中即可。
 """
 
 import os
 import sys
 import json
-import time
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,13 +26,7 @@ from pathlib import Path
 try:
     import pdfplumber
 except ImportError:
-    print("缺少依赖: pip install pdfplumber")
-    sys.exit(1)
-
-try:
-    from openai import OpenAI
-except ImportError:
-    print("缺少依赖: pip install openai")
+    print("[ERROR] 缺少依赖: pip install pdfplumber")
     sys.exit(1)
 
 
@@ -39,24 +34,9 @@ except ImportError:
 # Configuration
 # ============================================================
 
-DEFAULT_MODEL = os.environ.get("RRA_MODEL", "gpt-4o")
 DEFAULT_MAX_PAGES = int(os.environ.get("RRA_MAX_PAGES", "15"))
 DEFAULT_OUTPUT_DIR = os.environ.get("RRA_OUTPUT_DIR", "./output")
-DEFAULT_TEMPERATURE = float(os.environ.get("RRA_TEMPERATURE", "0.2"))
-DEFAULT_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-MAX_RETRIES = 3
-RETRY_BACKOFF = 2  # seconds
-
-
-def get_client() -> OpenAI:
-    """Initialize OpenAI client with environment config."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "未设置 OPENAI_API_KEY 环境变量。\n"
-            "请运行: export OPENAI_API_KEY='your-key-here'"
-        )
-    return OpenAI(api_key=api_key, base_url=DEFAULT_BASE_URL)
+MAX_TEXT_LENGTH_PER_REPORT = 15000  # 单份研报最大字符数，防止单份过长
 
 
 # ============================================================
@@ -65,9 +45,8 @@ def get_client() -> OpenAI:
 
 def extract_text_from_pdf(file_path: str, max_pages: int = DEFAULT_MAX_PAGES) -> str:
     """
-    Extract text from PDF using pdfplumber.
-    Limits page count to avoid token overload.
-    Handles double-column layouts common in Chinese broker reports.
+    使用 pdfplumber 提取 PDF 文本。
+    限制页数避免内容过长，兼容国内研报双栏排版。
     """
     text_parts = []
     try:
@@ -75,288 +54,234 @@ def extract_text_from_pdf(file_path: str, max_pages: int = DEFAULT_MAX_PAGES) ->
             pages_to_read = min(len(pdf.pages), max_pages)
             for i in range(pages_to_read):
                 page = pdf.pages[i]
-                # pdfplumber handles double-column layouts better than PyPDF2
                 text = page.extract_text()
                 if text and text.strip():
                     text_parts.append(text)
     except Exception as e:
-        print(f"  [WARN] 读取 {file_path} 失败: {e}")
+        print(f"  [WARN] 读取 {os.path.basename(file_path)} 失败: {e}")
         return ""
-    return "\n".join(text_parts)
+    
+    full_text = "\n".join(text_parts)
+    # 截断过长内容
+    if len(full_text) > MAX_TEXT_LENGTH_PER_REPORT:
+        full_text = full_text[:MAX_TEXT_LENGTH_PER_REPORT] + "\n...[内容过长，已截断]"
+    return full_text
 
 
 # ============================================================
-# LLM Analysis (Per-Report)
+# Formatting for AI Consumption
 # ============================================================
 
-PER_REPORT_PROMPT = """你是一个资深的 A 股/港股行业分析师。
-请仔细阅读以下券商研报文本，提取其中的核心投资信息。
-
-请严格以 JSON 格式输出，包含以下字段：
-1. "report_title": 研报标题（根据内容推断）
-2. "covered_stocks": 本研报覆盖的个股列表（股票名称 + 代码，如有）
-3. "key_themes": 本研报讨论的核心主题/行业（列表）
-4. "investment_logic": 本研报的核心投资逻辑摘要（1-3 句话）
-5. "rating": 研报给出的评级（如"买入"/"增持"/"中性"/"减持"/"未明确评级"）
-6. "target_price": 目标价（如有，否则为 null）
-7. "key_risks": 本研报提示的主要风险（列表）
-8. "data_highlights": 关键数据亮点（如营收增速、利润率、订单量等，列表）
-
-确保只输出合法的 JSON 字符串，不要包含 markdown 代码块标记或其他多余文字。"""
-
-
-def analyze_single_report(client: OpenAI, text: str, filename: str) -> dict | None:
-    """Analyze a single research report text via LLM. Returns parsed JSON or None on failure."""
-    if not text.strip():
-        print(f"  [SKIP] {filename}: 提取文本为空")
-        return None
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.chat.completions.create(
-                model=DEFAULT_MODEL,
-                messages=[
-                    {"role": "system", "content": PER_REPORT_PROMPT},
-                    {"role": "user", "content": f"研报文件名: {filename}\n\n研报内容:\n{text}"}
-                ],
-                response_format={"type": "json_object"},
-                temperature=DEFAULT_TEMPERATURE,
-                max_tokens=2000,
-            )
-            raw = response.choices[0].message.content
-            result = json.loads(raw)
-            result["_source_file"] = filename
-            print(f"  [OK] {filename}: 分析完成")
-            return result
-        except json.JSONDecodeError as e:
-            print(f"  [RETRY {attempt+1}/{MAX_RETRIES}] {filename}: JSON 解析失败 - {e}")
-        except Exception as e:
-            print(f"  [RETRY {attempt+1}/{MAX_RETRIES}] {filename}: API 错误 - {e}")
-        if attempt < MAX_RETRIES - 1:
-            time.sleep(RETRY_BACKOFF * (attempt + 1))
-
-    print(f"  [FAIL] {filename}: 达到最大重试次数，跳过")
-    return None
+def format_reports_for_ai(report_data: list[dict]) -> str:
+    """
+    将多份研报的提取结果格式化为 AI 友好的文本。
+    每份研报用清晰的分隔符标记，方便 AI 识别和解析。
+    """
+    lines = [
+        "=" * 60,
+        "研报批量分析输入数据",
+        "=" * 60,
+        f"共 {len(report_data)} 份研报 | 提取时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+    ]
+    
+    for i, report in enumerate(report_data, 1):
+        lines.append(f"--- 研报《{report['filename']}》内容开始 [第 {i}/{len(report_data)} 份] ---")
+        lines.append("")
+        lines.append(report["text"])
+        lines.append("")
+        lines.append(f"--- 研报《{report['filename']}》内容结束 ---")
+        lines.append("")
+    
+    lines.append("=" * 60)
+    lines.append("数据结束。请对上述研报进行综合交叉分析。")
+    lines.append("=" * 60)
+    
+    return "\n".join(lines)
 
 
 # ============================================================
-# Aggregation (Cross-Report Synthesis)
+# Output Saving
 # ============================================================
 
-AGGREGATION_PROMPT = """你是一个资深的 A 股/港股量化研究员与首席策略师。
-以下是多份券商研报的逐份分析结果（JSON 格式）。请你进行综合交叉分析。
-
-请严格以 JSON 格式输出，包含以下字段：
-1. "current_hot_topics": [列表] 当下市场正在炒作、研报中频繁提及的核心热点题材。
-2. "future_trends": [列表] 研报中预测的未来可能爆发的产业趋势或潜伏热点。
-3. "undervalued_with_performance": [列表] 有扎实业绩支撑，但研报指出当前估值/股价仍处于低位、存在预期差的具体公司名称及逻辑简述。
-4. "recommended_buy": [列表] 多篇研报共同强烈推荐买入、逻辑最硬的标的（含推荐理由）。
-5. "avoid_or_risks": [列表] 研报中提示了减持评级、行业拐点向下、面临政策或财务风险，建议规避的板块或个股。
-6. "summary": [字符串] 综合这批研报，给出一份简短的总体投资策略建议（200 字以内）。
-
-确保只输出合法的 JSON 字符串，不要包含 markdown 代码块标记或其他多余文字。"""
-
-
-def aggregate_results(client: OpenAI, per_report_results: list[dict]) -> dict | None:
-    """Aggregate per-report analyses into a cross-report synthesis."""
-    if not per_report_results:
-        return None
-
-    # Build a concise summary of each report to avoid token overflow
-    report_summaries = []
-    for r in per_report_results:
-        summary = {
-            "file": r.get("_source_file", "unknown"),
-            "title": r.get("report_title", ""),
-            "stocks": r.get("covered_stocks", []),
-            "themes": r.get("key_themes", []),
-            "logic": r.get("investment_logic", ""),
-            "rating": r.get("rating", ""),
-            "risks": r.get("key_risks", []),
-        }
-        report_summaries.append(summary)
-
-    combined_text = json.dumps(report_summaries, ensure_ascii=False, indent=2)
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.chat.completions.create(
-                model=DEFAULT_MODEL,
-                messages=[
-                    {"role": "system", "content": AGGREGATION_PROMPT},
-                    {"role": "user", "content": f"以下是 {len(per_report_results)} 份研报的分析结果汇总：\n{combined_text}"}
-                ],
-                response_format={"type": "json_object"},
-                temperature=DEFAULT_TEMPERATURE,
-                max_tokens=3000,
-            )
-            raw = response.choices[0].message.content
-            result = json.loads(raw)
-            return result
-        except Exception as e:
-            print(f"  [RETRY {attempt+1}/{MAX_RETRIES}] 汇总分析失败: {e}")
-        if attempt < MAX_RETRIES - 1:
-            time.sleep(RETRY_BACKOFF * (attempt + 1))
-
-    return None
-
-
-# ============================================================
-# Output
-# ============================================================
-
-def save_results(aggregated: dict, per_report: list[dict], output_dir: str):
-    """Save results in JSON and Markdown formats."""
+def save_outputs(
+    formatted_text: str,
+    metadata: list[dict],
+    output_dir: str
+) -> tuple[str, str, str]:
+    """
+    保存三种输出文件：
+    1. .txt — 格式化文本，直接复制到 AI 对话
+    2. .json — 元数据（文件名、页数、提取状态等）
+    3. _prompt.md — 包含分析提示词的完整模板
+    """
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # --- JSON output ---
-    json_filename = os.path.join(output_dir, f"analysis_{timestamp}.json")
-    output_data = {
-        "aggregated": aggregated,
-        "per_report": per_report,
-        "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
-        "model_used": DEFAULT_MODEL,
-        "report_count": len(per_report),
+    
+    # --- 1. 格式化文本 (.txt) ---
+    txt_path = os.path.join(output_dir, f"reports_extracted_{timestamp}.txt")
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(formatted_text)
+    print(f"[SAVED] 提取文本: {txt_path}")
+    
+    # --- 2. 元数据 (.json) ---
+    json_path = os.path.join(output_dir, f"reports_metadata_{timestamp}.json")
+    meta_output = {
+        "extraction_timestamp": datetime.now(timezone.utc).isoformat(),
+        "total_reports": len(metadata),
+        "successful_extractions": sum(1 for m in metadata if m["success"]),
+        "failed_extractions": sum(1 for m in metadata if not m["success"]),
+        "reports": metadata,
     }
-    with open(json_filename, "w", encoding="utf-8") as f:
-        json.dump(output_data, f, ensure_ascii=False, indent=2)
-    print(f"\n[SAVED] JSON: {json_filename}")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(meta_output, f, ensure_ascii=False, indent=2)
+    print(f"[SAVED] 元数据: {json_path}")
+    
+    # --- 3. 带提示词的完整模板 (_prompt.md) ---
+    prompt_path = os.path.join(output_dir, f"reports_analysis_prompt_{timestamp}.md")
+    prompt_content = build_ai_prompt(formatted_text)
+    with open(prompt_path, "w", encoding="utf-8") as f:
+        f.write(prompt_content)
+    print(f"[SAVED] 分析模板: {prompt_path}")
+    
+    return txt_path, json_path, prompt_path
 
-    # --- Markdown summary ---
-    md_filename = os.path.join(output_dir, f"analysis_{timestamp}.md")
-    md_lines = [
-        f"# 研报综合分析报告",
-        f"",
-        f"> 分析时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"> 研报数量: {len(per_report)} 份",
-        f"> 使用模型: {DEFAULT_MODEL}",
-        f"",
-    ]
 
-    if aggregated:
-        sections = [
-            ("当前热点题材", "current_hot_topics"),
-            ("未来趋势/潜伏热点", "future_trends"),
-            ("业绩好但估值低", "undervalued_with_performance"),
-            ("强烈推荐买入", "recommended_buy"),
-            ("风险提示/建议规避", "avoid_or_risks"),
-        ]
-        for title, key in sections:
-            items = aggregated.get(key, [])
-            md_lines.append(f"## {title}")
-            md_lines.append("")
-            if items:
-                for item in items:
-                    md_lines.append(f"- {item}")
-            else:
-                md_lines.append("*(无明确信号)*")
-            md_lines.append("")
+def build_ai_prompt(formatted_text: str) -> str:
+    """构建包含分析提示词的完整模板，用户可直接复制到 AI 对话。"""
+    return f"""# 研报分析任务
 
-        summary = aggregated.get("summary", "")
-        if summary:
-            md_lines.append("## 总体策略建议")
-            md_lines.append("")
-            md_lines.append(summary)
-            md_lines.append("")
+你是一个资深的 A 股/港股量化研究员与行业分析师。
+我将为你提供近期收集的一批券商研报文本，请你仔细阅读并进行综合交叉分析。
 
-    # Per-report details
-    md_lines.append("---")
-    md_lines.append("")
-    md_lines.append("## 逐份研报分析详情")
-    md_lines.append("")
-    for r in per_report:
-        md_lines.append(f"### {r.get('_source_file', 'unknown')}")
-        md_lines.append(f"- **标题**: {r.get('report_title', 'N/A')}")
-        md_lines.append(f"- **覆盖个股**: {', '.join(r.get('covered_stocks', [])) or 'N/A'}")
-        md_lines.append(f"- **评级**: {r.get('rating', 'N/A')}")
-        md_lines.append(f"- **核心逻辑**: {r.get('investment_logic', 'N/A')}")
-        md_lines.append(f"- **主要风险**: {', '.join(r.get('key_risks', [])) or 'N/A'}")
-        md_lines.append("")
+## 输出要求
 
-    with open(md_filename, "w", encoding="utf-8") as f:
-        f.write("\n".join(md_lines))
-    print(f"[SAVED] Markdown: {md_filename}")
+请严格以 JSON 格式输出你的分析结果，包含以下字段：
 
-    return json_filename, md_filename
+1. **"current_hot_topics"**: [列表] 当下市场正在炒作、研报中频繁提及的核心热点题材。
+2. **"future_trends"**: [列表] 研报中预测的未来可能爆发的产业趋势或潜伏热点。
+3. **"undervalued_with_performance"**: [列表] 有扎实业绩支撑，但研报指出当前估值/股价仍处于低位、存在预期差的具体公司名称及逻辑简述。
+4. **"recommended_buy"**: [列表] 多篇研报共同强烈推荐买入、逻辑最硬的标的（含推荐理由）。
+5. **"avoid_or_risks"**: [列表] 研报中提示了减持评级、行业拐点向下、面临政策或财务风险，建议规避的板块或个股。
+6. **"summary"**: [字符串] 综合这批研报，给出一份简短的总体投资策略建议（200 字以内）。
+
+## 约束条件
+
+- 确保只输出合法的 JSON 字符串
+- 不要包含任何 markdown 代码块标记（如 ```json）或其他多余文字
+- 基于研报文本中的事实进行分析，不要编造数据
+- 对不确定的信息标注"未明确提及"
+
+---
+
+## 研报文本数据
+
+{formatted_text}
+
+---
+
+请直接输出 JSON 结果。
+"""
 
 
 # ============================================================
 # Main Entry
 # ============================================================
 
-def analyze_research_reports(
+def extract_reports(
     directory_path: str = ".",
     file_paths: list[str] | None = None,
     output_dir: str = DEFAULT_OUTPUT_DIR,
+    max_pages: int = DEFAULT_MAX_PAGES,
 ) -> dict:
     """
-    Skill: Analyze research reports and extract structured investment insights.
-
+    批量提取 PDF 研报文本并格式化为 AI 可读的输出。
+    
     Args:
-        directory_path: Directory containing PDF files to analyze.
-        file_paths: Optional list of specific PDF file paths (overrides directory scan).
-        output_dir: Directory to save output files.
-
+        directory_path: 包含 PDF 文件的目录路径
+        file_paths: 可选，指定具体的 PDF 文件路径列表
+        output_dir: 输出目录
+        max_pages: 每份 PDF 最大提取页数
+    
     Returns:
-        Aggregated analysis dict with structured investment insights.
+        dict 包含 formatted_text, metadata, output_files
     """
-    client = get_client()
-
-    # Collect PDF files
+    # 收集 PDF 文件
     if file_paths:
         pdf_files = [fp for fp in file_paths if fp.lower().endswith(".pdf")]
     else:
+        if not os.path.isdir(directory_path):
+            print(f"[ERROR] 目录不存在: {directory_path}")
+            return {}
         pdf_files = sorted([
             f for f in os.listdir(directory_path)
             if f.lower().endswith(".pdf")
         ])
-
+        pdf_files = [os.path.join(directory_path, f) for f in pdf_files]
+    
     if not pdf_files:
-        print("未找到 PDF 格式的研报文件。")
+        print("[WARN] 未找到 PDF 格式的研报文件。")
         return {}
-
-    print(f"找到 {len(pdf_files)} 份研报，开始逐份提取与分析...\n")
-
-    # Phase 1: Per-report analysis
-    per_report_results = []
-    for filename in pdf_files:
-        if file_paths:
-            filepath = filename
-        else:
-            filepath = os.path.join(directory_path, filename)
-
+    
+    print(f"找到 {len(pdf_files)} 份研报，开始提取文本...\n")
+    
+    # 逐份提取
+    report_data = []
+    metadata = []
+    
+    for filepath in pdf_files:
+        filename = os.path.basename(filepath)
         print(f"[Processing] {filename}")
-        text = extract_text_from_pdf(filepath)
-        if text.strip():
-            result = analyze_single_report(client, text, os.path.basename(filepath))
-            if result:
-                per_report_results.append(result)
+        
+        text = extract_text_from_pdf(filepath, max_pages=max_pages)
+        success = bool(text.strip())
+        
+        if success:
+            report_data.append({"filename": filename, "text": text})
+            print(f"  [OK] 提取成功 ({len(text)} 字符)")
+        else:
+            print(f"  [SKIP] 提取失败或文本为空")
+        
+        metadata.append({
+            "filename": filename,
+            "path": filepath,
+            "success": success,
+            "text_length": len(text) if success else 0,
+        })
         print()
-
-    if not per_report_results:
-        print("所有研报分析均失败，无法生成汇总报告。")
+    
+    if not report_data:
+        print("[ERROR] 所有研报提取均失败。")
         return {}
-
-    print(f"逐份分析完成: {len(per_report_results)}/{len(pdf_files)} 份成功")
-    print("正在进行交叉汇总分析...\n")
-
-    # Phase 2: Aggregation
-    aggregated = aggregate_results(client, per_report_results)
-
-    if aggregated:
-        aggregated["source_reports"] = [r.get("_source_file", "") for r in per_report_results]
-        aggregated["analysis_timestamp"] = datetime.now(timezone.utc).isoformat()
-
-    # Phase 3: Save output
-    save_results(aggregated or {}, per_report_results, output_dir)
-
-    return aggregated or {}
+    
+    # 格式化为 AI 可读文本
+    print(f"提取完成: {len(report_data)}/{len(pdf_files)} 份成功")
+    print("正在格式化输出...\n")
+    
+    formatted_text = format_reports_for_ai(report_data)
+    
+    # 保存输出
+    txt_path, json_path, prompt_path = save_outputs(formatted_text, metadata, output_dir)
+    
+    return {
+        "formatted_text": formatted_text,
+        "metadata": metadata,
+        "output_files": {
+            "text": txt_path,
+            "metadata": json_path,
+            "prompt": prompt_path,
+        },
+        "summary": {
+            "total": len(pdf_files),
+            "successful": len(report_data),
+            "failed": len(pdf_files) - len(report_data),
+        }
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="研报批量分析器 — 提取 PDF 研报中的结构化投资洞察"
+        description="研报批量分析器 — 提取 PDF 文本供 AI 分析（零 API 依赖）"
     )
     parser.add_argument(
         "path",
@@ -369,8 +294,14 @@ def main():
         default=DEFAULT_OUTPUT_DIR,
         help=f"输出目录 (默认: {DEFAULT_OUTPUT_DIR})"
     )
+    parser.add_argument(
+        "-p", "--pages",
+        type=int,
+        default=DEFAULT_MAX_PAGES,
+        help=f"每份 PDF 最大提取页数 (默认: {DEFAULT_MAX_PAGES})"
+    )
     args = parser.parse_args()
-
+    
     target = args.path
     if os.path.isfile(target) and target.lower().endswith(".pdf"):
         file_paths = [target]
@@ -379,18 +310,24 @@ def main():
         file_paths = None
         directory_path = target
     else:
-        print(f"错误: '{target}' 不是有效的 PDF 文件或目录")
+        print(f"[ERROR] '{target}' 不是有效的 PDF 文件或目录")
         sys.exit(1)
-
-    result = analyze_research_reports(
+    
+    result = extract_reports(
         directory_path=directory_path,
         file_paths=file_paths,
         output_dir=args.output,
+        max_pages=args.pages,
     )
-
+    
     if result:
-        print("\n================ 研报综合分析报告 ================\n")
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        print("\n" + "=" * 60)
+        print("提取完成！下一步：")
+        print("=" * 60)
+        print(f"1. 打开文件: {result['output_files']['prompt']}")
+        print("2. 复制全部内容，粘贴到你的 AI 对话中")
+        print("3. AI 将自动输出 JSON 格式的分析结果")
+        print("=" * 60)
 
 
 if __name__ == "__main__":
