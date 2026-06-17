@@ -1,166 +1,135 @@
 ﻿---
 name: "research-report-analyzer"
-description: "Extract text from PDF research reports and format it for AI analysis. Invoke when user wants to batch process research reports, extract PDF text for LLM consumption, or prepare report content for AI-powered investment analysis."
+description: "Batch analyze PDF research reports in a directory. Invoke when user asks to analyze research reports, extract investment insights from PDFs, or mentions 研报分析/批量研报/研报提取. The AI executes the full workflow: extract PDF text via pdfplumber, then analyze directly."
 ---
 
 # Research Report Analyzer (研报批量分析)
 
-A lightweight tool that extracts text from PDF research reports and formats it for direct AI analysis. **No API keys required** — the actual analysis is performed by the AI agent invoking this skill.
-
 ## When to Use
 
-- User wants to analyze one or multiple PDF research reports
-- User asks to extract stock recommendations, hot topics, or risk warnings from reports
+- User says "分析当前目录的研报"
+- User says "帮我看看这些 PDF 研报"
 - User mentions "研报分析", "批量研报", "研报提取", "research report analysis"
-- User wants to feed research report data into a backtesting or quantitative dashboard
-- User wants to prepare PDF content for AI analysis without calling external APIs
+- User wants to extract stock recommendations, hot topics, or risk warnings from reports
 
-## Architecture
+## Execution Workflow
 
-```
-PDF Files → pdfplumber (text extraction) → Formatted output → AI Agent analyzes directly
-```
+When this skill is invoked, the AI MUST execute the following steps:
 
-**Key design decisions:**
-- **Zero API dependencies** — no OpenAI, DeepSeek, or any external LLM API needed
-- **AI-native workflow** — the AI agent reading the output performs the analysis
-- **Smart formatting** — chunks text into AI-friendly segments with clear boundaries
-- **Error isolation** — one PDF failure won't crash the entire batch
-- **Persistent output** — results saved as formatted text and JSON metadata
+### Step 1: Discover PDF Files
 
-## Dependencies
+Use `Glob` or `LS` to find all `.pdf` files in the specified directory (default: current working directory).
 
-```bash
-pip install pdfplumber
-```
+### Step 2: Extract Text from PDFs
 
-**No openai, no pydantic, no API keys.**
+For each PDF found, use `pdfplumber` (via Python execution) to extract text. Limit to first 15 pages by default to avoid token overflow.
 
-## Configuration
+**Python extraction script:**
 
-| Environment Variable | Required | Default | Description |
-|---------------------|----------|---------|-------------|
-| `RRA_MAX_PAGES` | No | `15` | Max pages to extract per PDF |
-| `RRA_OUTPUT_DIR` | No | `./output` | Directory for output files |
+```python
+import pdfplumber
+import os
 
-## How It Works
+def extract_pdf_text(file_path, max_pages=15):
+    text_parts = []
+    try:
+        with pdfplumber.open(file_path) as pdf:
+            pages_to_read = min(len(pdf.pages), max_pages)
+            for i in range(pages_to_read):
+                text = pdf.pages[i].extract_text()
+                if text and text.strip():
+                    text_parts.append(text)
+    except Exception as e:
+        return f"[ERROR] Failed to read {file_path}: {e}"
+    full_text = "\n".join(text_parts)
+    # Truncate if too long
+    if len(full_text) > 15000:
+        full_text = full_text[:15000] + "\n...[内容过长，已截断]"
+    return full_text
 
-### Step 1: Extract & Format
-
-The tool extracts text from PDFs and formats it into a structured document:
-
-```
-================ 研报批量分析输入数据 ================
-
---- 研报《文件名1.pdf》内容开始 ---
-[提取的文本内容...]
---- 研报内容结束 ---
-
---- 研报《文件名2.pdf》内容开始 ---
-[提取的文本内容...]
---- 研报内容结束 ---
-
-====================================================
+# Extract all PDFs in directory
+pdf_files = [f for f in os.listdir(".") if f.lower().endswith(".pdf")]
+for pdf in pdf_files:
+    print(f"\n=== 研报《{pdf}》===\n")
+    print(extract_pdf_text(pdf))
 ```
 
-### Step 2: AI Analysis
+### Step 3: Analyze Extracted Content
 
-The formatted output is designed to be fed directly into an AI conversation. The AI agent (Claude, GPT, DeepSeek, etc.) reads the formatted text and performs the analysis using its own reasoning capabilities.
+The AI reads the extracted text and performs comprehensive cross-analysis directly. Do NOT ask the user to copy-paste anything. The AI acts as the analyst.
 
-### Step 3: Structured Output
+### Step 4: Output Structured JSON
 
-The AI outputs structured JSON according to the schema below.
-
-## Output Schema (AI-Generated)
-
-When the AI analyzes the formatted output, it should produce:
+The AI MUST output the analysis result in the following JSON schema:
 
 ```json
 {
-  "current_hot_topics": ["string — trending themes mentioned across reports"],
-  "future_trends": ["string — predicted emerging trends"],
-  "undervalued_with_performance": ["string — companies with solid fundamentals but low valuation"],
-  "recommended_buy": ["string — strongly recommended buy targets with rationale"],
-  "avoid_or_risks": ["string — sectors/stocks with downgrade or risk warnings"],
-  "summary": "string — overall investment strategy recommendation",
-  "source_reports": ["string — list of processed report filenames"],
-  "analysis_timestamp": "string — ISO 8601 timestamp"
+  "current_hot_topics": ["string — 当下市场正在炒作、研报中频繁提及的核心热点题材"],
+  "future_trends": ["string — 研报中预测的未来可能爆发的产业趋势或潜伏热点"],
+  "undervalued_with_performance": ["string — 有扎实业绩支撑，但估值/股价仍处于低位的标的及逻辑"],
+  "recommended_buy": ["string — 多篇研报共同强烈推荐买入的标的（含推荐理由）"],
+  "avoid_or_risks": ["string — 建议规避的板块或个股（含风险说明）"],
+  "summary": "string — 总体投资策略建议（200字以内）",
+  "source_reports": ["string — 处理的研报文件名列表"],
+  "analysis_timestamp": "string — ISO 8601 时间戳"
 }
 ```
 
-## Usage
+### Step 5: Save Results (Optional)
 
-### As a Python module
+If the user wants persistent output, save both:
+- JSON result to `analysis_result_YYYYMMDD_HHMMSS.json`
+- Markdown summary to `analysis_report_YYYYMMDD_HHMMSS.md`
 
-```python
-from research_report_analyzer import extract_reports
+## Analysis Guidelines
 
-# Extract all PDFs in a directory
-result = extract_reports(
-    directory_path="/path/to/reports",
-    output_dir="./output"
-)
-# result contains: formatted_text, metadata, output_file paths
+When analyzing reports, the AI should:
 
-# The formatted_text is ready to paste into an AI conversation
-print(result["formatted_text"])
+1. **Identify consensus**: What do multiple reports agree on?
+2. **Spot contradictions**: Where do reports disagree? Which view has stronger evidence?
+3. **Extract quantitative data**: Target prices, earnings forecasts, growth rates
+4. **Assess risk levels**: Distinguish between minor concerns and major red flags
+5. **Cross-reference**: Connect themes across different sectors and reports
+
+## Example User Interaction
+
+**User**: "分析当前目录的研报"
+
+**AI Action**:
+1. Run PDF discovery → find 5 PDF files
+2. Extract text from each PDF using pdfplumber
+3. Read and analyze all content
+4. Output structured JSON with investment insights
+5. Provide a brief natural language summary
+
+**AI Output**:
+```json
+{
+  "current_hot_topics": ["固态电池产业化加速", "AI 算力需求爆发"],
+  "future_trends": ["人形机器人零部件", "低空经济基础设施"],
+  "undervalued_with_performance": [
+    "宁德时代：Q2 业绩超预期，当前 PE 仅 15x，低于行业均值 20x"
+  ],
+  "recommended_buy": [
+    "比亚迪：3 家券商上调目标价至 300+，新能源车市占率持续提升"
+  ],
+  "avoid_or_risks": [
+    "光伏组件：产能过剩，价格战持续，行业拐点向下，建议规避"
+  ],
+  "summary": "建议关注新能源产业链中业绩确定性强的龙头标的，固态电池和 AI 算力为当前主线。规避产能过剩的光伏组件板块。",
+  "source_reports": ["中信证券-宁德时代深度报告.pdf", "华泰证券-比亚迪季报点评.pdf"],
+  "analysis_timestamp": "2026-06-17T14:30:00+08:00"
+}
 ```
 
-### As a CLI tool
+## Dependencies
 
-```bash
-# Extract all PDFs in current directory
-python research_report_analyzer.py .
+- `pdfplumber` (Python package for PDF text extraction)
+- No OpenAI API, no external LLM calls needed
 
-# Extract specific directory
-python research_report_analyzer.py /path/to/reports
+## Notes
 
-# With custom output directory
-python research_report_analyzer.py /path/to/reports -o ./results
-```
-
-### AI Analysis Prompt Template
-
-After extracting the text, use this prompt with your AI:
-
-```
-你是一个资深的 A 股/港股量化研究员与行业分析师。
-我将为你提供近期收集的一批券商研报文本，请你仔细阅读并进行综合交叉分析。
-
-请严格以 JSON 格式输出你的分析结果，包含以下字段：
-1. "current_hot_topics": [列表] 当下市场正在炒作、研报中频繁提及的核心热点题材。
-2. "future_trends": [列表] 研报中预测的未来可能爆发的产业趋势或潜伏热点。
-3. "undervalued_with_performance": [列表] 有扎实业绩支撑，但研报指出当前估值/股价仍处于低位、存在预期差的具体公司名称及逻辑简述。
-4. "recommended_buy": [列表] 多篇研报共同强烈推荐买入、逻辑最硬的标的（含推荐理由）。
-5. "avoid_or_risks": [列表] 研报中提示了减持评级、行业拐点向下、面临政策或财务风险，建议规避的板块或个股。
-6. "summary": [字符串] 综合这批研报，给出一份简短的总体投资策略建议（200 字以内）。
-
-确保只输出合法的 JSON 字符串，不要包含任何 markdown 代码块标记或其他多余文字。
-
-以下是研报文本：
-[粘贴提取的格式化文本]
-```
-
-## Integration with Agent Workflows
-
-This skill is designed for **AI-native workflows**:
-
-1. **Pre-trade screening** — Extract reports → Feed to AI agent → Get investment insights
-2. **Daily briefing** — Run each morning, let AI analyze overnight reports
-3. **Backtesting input** — AI outputs JSON that feeds directly into quantitative systems
-4. **Dashboard data** — Load AI-generated JSON into Grafana/Obsidian dashboards
-
-## Why No External API?
-
-- **Cost**: No per-token charges for PDF extraction
-- **Privacy**: Report text stays in your environment until you choose to share with AI
-- **Flexibility**: Use any AI (Claude, GPT, DeepSeek, local models) without code changes
-- **Simplicity**: Single dependency (`pdfplumber`), no API key management
-- **Reliability**: No network failures, rate limits, or service outages
-
-## Implementation Notes
-
-- See `research_report_analyzer.py` for the full implementation
-- The script handles Chinese PDFs with double-column layouts common in domestic broker reports
-- For very large batches (>20 reports), the tool automatically chunks output into manageable segments
-- Each report is clearly delimited with markers for easy AI parsing
+- For scanned/image-based PDFs, text extraction will fail. Notify the user to use OCR first.
+- If a single PDF fails to extract, continue processing others. Report the failure in output.
+- Default max_pages=15 captures the essence of most research reports.
+- The AI performs the analysis using its own reasoning capabilities on the extracted text.
