@@ -12,6 +12,17 @@ description: "Batch analyze PDF research reports in a directory — supports bot
 - User wants to extract stock recommendations, hot topics, or risk warnings from report PDFs
 - Current directory or specified directory contains PDF research report files
 
+## Configuration
+
+```yaml
+# Auto-save destination for analysis results (Obsidian vault)
+save_dir: "F:\\note\\20 Projects\\天才交易员\\06-每日研报分析"
+```
+
+## Date Detection
+
+The report date is derived from **PDF filenames**, not today's date. Most filenames contain a pattern like `6.17`, `6.18`, etc. Extract the most common date across filenames and resolve it to a full `YYYY-MM-DD` using the current year. For example, if most files contain `6.17` and the current year is 2026, the report date is `2026-06-17`.
+
 ## Execution Workflow
 
 ### Step 1: Run Extraction Script
@@ -123,11 +134,30 @@ After the Markdown report, **also** output the structured JSON for programmatic 
 }
 ```
 
-### Step 7: Save Results (Optional)
+### Step 7: Save Results (Automatic)
 
-If the user requests, save to the target directory:
-- `analysis_report_YYYYMMDD.md` — Markdown report
-- `analysis_result_YYYYMMDD.json` — JSON data
+**Always** save analysis results to `save_dir` after outputting to the user. Use the detected report date (see "Date Detection" above) for filenames.
+
+Save two files using the **Write tool**:
+- `{save_dir}/YYYY-MM-DD.md` — Markdown report (the full Step 5 output, prefixed with a YAML-style header containing source directory and analysis timestamp)
+- `{save_dir}/YYYY-MM-DD.json` — JSON data (the full Step 6 output)
+
+**Markdown file header** (prepend before the report body):
+```markdown
+# YYYY-MM-DD 研报综合分析（共 N 份）
+
+> 来源目录：`<source_directory>`
+> 分析时间：YYYY-MM-DD HH:MM CST
+```
+
+If the file already exists for that date, **overwrite** it (re-analysis replaces the previous version).
+
+After saving, confirm to the user:
+```
+已保存至：
+- F:\note\20 Projects\天才交易员\06-每日研报分析\YYYY-MM-DD.md
+- F:\note\20 Projects\天才交易员\06-每日研报分析\YYYY-MM-DD.json
+```
 
 ## Analysis Guidelines
 
