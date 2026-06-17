@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/config.schema.json
+﻿# yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/config.schema.json
 # Windows 配置模板 — 复制为 config.yaml 后使用：
 #   .\setup-config.ps1
 # 若用户名不同，请将路径中的 101202106068 改为你的用户名。
@@ -15,6 +15,7 @@ targets:
         - "merlynr-dev-stack"
         - "merlynr-dev"
         - "uzi-analysis-stack"
+        - "research-report-analyzer"
         - "gsd-ns-*"
         - "gsd-team"
         - "gsd-do"
