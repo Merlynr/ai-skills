@@ -44,6 +44,8 @@ metadata:
 | C++、Rust | `cpp-rust-study-session` | 学习记录在 `学习记录/` |
 | 其他 | 本 Skill 默认结构 | `20 Projects/$learning_type/` |
 
+*注：如果目标环境中未安装或不存在对应的专用 Skill（如当前环境缺失 `cpp-rust-study-session`），则必须自动降级，使用本技能（`unified-learning-session`）定义的通用结构和流程进行学习管理。*
+
 #### 1.2 检查 Obsidian vault
 
 **vault 根目录**：优先当前工作区（如 `f:\note`）；若无则 `$HOME/obsidian-vault`。
@@ -69,13 +71,17 @@ metadata:
 
 #### 2.1 读取学习计划
 
-```bash
-# 读取本地计划
-cat "$vault_path/20 Projects/$learning_type/学习计划.md"
-
-# 查询 nmem 统计
-nmem m search "学习计划" -l $learning_type -n 10
-```
+*   **读取本地计划**：禁止在 Windows 下直接使用 `cat` 命令。优先使用当前客户端内置的文件查看工具（如 `view_file` 或 `read_file`）读取文件：
+    `20 Projects/$learning_type/学习计划.md`
+*   **查询 nmem 统计**：
+    *   **MCP 环境 (OpenCode/Claude/Antigravity)**：调用 MCP tool `memory_search`（或 `search_memory`）进行结构化查询：
+        ```json
+        { "query": "学习计划", "labels": ["$learning_type"], "limit": 10 }
+        ```
+    *   **裸 CLI 环境 (Codex)**：使用终端命令：
+        ```bash
+        nmem m search "学习计划" -l $learning_type -n 10
+        ```
 
 #### 2.2 创建当日学习记录
 
@@ -389,40 +395,69 @@ nmem m search "学习计划" -l $learning_type -n 10
 
 #### 3.6 实时 nmem 记录
 
-**Windows 写入 nmem**：优先 **MCP `memory_add`**（`id` upsert、UTF-8 正文）；**禁止** `$text | nmem m add --stdin`（易中文乱码）。高软简报详见 `gaoruan-study-session` §D。
+**Windows 写入 nmem**：在支持 MCP 的客户端（OpenCode、Claude Code、Antigravity）中，**强制优先调用 MCP Tool (`nowledge-mem/memory_add`)** 写入，以规避 Windows 命令行中文转码导致的乱码问题。仅在裸终端环境下回退到 CLI 命令行。
 
+##### MCP 接口参数格式 (OpenCode/Claude/Antigravity 优先)：
+
+*   **错题记录到 nmem**：
+    *   **Tool**: `nowledge-mem/memory_add`
+    *   **Arguments**:
+        ```json
+        {
+          "content": "题目编号: $question_id\n错题: $question\n正确答案: $answer\n错因: $reason\n考点: $knowledge_point",
+          "title": "错题记录: $learning_type 第$question_id题",
+          "labels": ["$learning_type", "study", "wrong-answer", "qid-$question_id"],
+          "importance": 0.6,
+          "source": "unified-learning",
+          "unit_type": "learning"
+        }
+        ```
+*   **对题记录到 nmem**：
+    *   **Tool**: `nowledge-mem/memory_add`
+    *   **Arguments**:
+        ```json
+        {
+          "content": "题目编号: $question_id\n对题: $question\n正确答案: $answer\n考点: $knowledge_point",
+          "title": "对题记录: $learning_type 第$question_id题",
+          "labels": ["$learning_type", "study", "correct-answer", "qid-$question_id"],
+          "importance": 0.5,
+          "source": "unified-learning",
+          "unit_type": "learning"
+        }
+        ```
+*   **知识点记录到 nmem (汇总)**：
+    *   **Tool**: `nowledge-mem/memory_add`
+    *   **Arguments**:
+        ```json
+        {
+          "content": "章节: 第N章\n考点: $knowledge_point\n题目数: N\n涉及题目编号: $question_ids",
+          "title": "知识点: $knowledge_point",
+          "labels": ["$learning_type", "knowledge-point"],
+          "importance": 0.7,
+          "source": "unified-learning",
+          "unit_type": "knowledge"
+        }
+        ```
+*   **学习进度记录到 nmem**：
+    *   **Tool**: `nowledge-mem/memory_add`
+    *   **Arguments**:
+        ```json
+        {
+          "content": "学习进度: 已完成 $completed/$total 题\n正确率: $accuracy%\n最近完成: 第$question_id题",
+          "title": "学习进度: $learning_type",
+          "labels": ["$learning_type", "study-progress", "qid-$question_id"],
+          "importance": 0.4,
+          "source": "unified-learning",
+          "unit_type": "learning"
+        }
+        ```
+
+##### 裸 CLI 命令行格式 (仅 Codex/Linux 终端回退使用)：
 ```bash
-# 错题记录到 nmem（含题目编号）
-nmem m add "题目编号: $question_id\n错题: $question\n正确答案: $answer\n错因: $reason\n考点: $knowledge_point" \
-  -t "错题记录: $learning_type 第${question_id}题" \
-  --unit-type learning \
-  -i 0.6 \
-  -l $learning_type,study,wrong-answer,qid-$question_id \
-  -s unified-learning
-
-# 对题记录到 nmem（含题目编号）
-nmem m add "题目编号: $question_id\n对题: $question\n正确答案: $answer\n考点: $knowledge_point" \
-  -t "对题记录: $learning_type 第${question_id}题" \
-  --unit-type learning \
-  -i 0.5 \
-  -l $learning_type,study,correct-answer,qid-$question_id \
-  -s unified-learning
-
-# 知识点记录到 nmem（汇总）
-nmem m add "章节: 第N章\n考点: $knowledge_point\n题目数: N\n涉及题目编号: $question_ids" \
-  -t "知识点: $knowledge_point" \
-  --unit-type knowledge \
-  -i 0.7 \
-  -l $learning_type,knowledge-point \
-  -s unified-learning
-
-# 学习进度记录到 nmem
-nmem m add "学习进度: 已完成 $completed/$total 题\n正确率: $accuracy%\n最近完成: 第${question_id}题" \
-  -t "学习进度: $learning_type" \
-  --unit-type learning \
-  -i 0.4 \
-  -l $learning_type,study-progress,qid-$question_id \
-  -s unified-learning
+# 错题记录
+nmem m add "内容..." -t "标题" --unit-type learning -i 0.6 -l $learning_type,study,wrong-answer -s unified-learning
+# 对题记录
+nmem m add "内容..." -t "标题" --unit-type learning -i 0.5 -l $learning_type,study,correct-answer -s unified-learning
 ```
 
 ### Phase 4: 结束学习会话
@@ -458,28 +493,36 @@ nmem m add "学习进度: 已完成 $completed/$total 题\n正确率: $accuracy%
 
 #### 4.2 同步计划状态
 
-```bash
-# 更新本地计划
-sed -i "s/状态: 进行中/状态: 已完成/" "$vault_path/20 Projects/$learning_type/学习计划.md"
-
-# 更新日计划
-sed -i "s/- \[ \] $learning_type 学习任务/- [x] $learning_type 学习任务/" "$vault_path/10 Daily/YYYY-MM-DD.md"
-```
+*   **更新本地计划与日计划**：在 Windows 平台下**禁止**使用 `sed -i` 命令进行文本替换。AI 助手应当：
+    1. 调用当前客户端内置的 `replace_file_content` 工具，读取 `20 Projects/$learning_type/学习计划.md`，将状态“进行中”修改为“已完成”。
+    2. 读取 `10 Daily/YYYY-MM-DD.md`，将日计划中的 `- [ ] $learning_type 学习任务` 替换标记为 `- [x] $learning_type 学习任务`。
 
 #### 4.3 生成 nmem 简报
 
-```bash
-# 读取 nmem 中的学习记录
-nmem_records=$(nmem m search "学习记录" -l $learning_type -n 20 --json)
-
-# 生成简报
-nmem m add "学习汇总内容" \
-  -t "$learning_type 学习简报 YYYY-MM-DD" \
-  --unit-type learning \
-  -i 0.8 \
-  -l $learning_type,study,summary \
-  -s unified-learning
-```
+*   **MCP 环境 (OpenCode/Claude/Antigravity 优先)**：
+    1. 调用 MCP `memory_search` 搜索并整合今日的相关学习记录：
+       ```json
+       { "query": "学习记录", "labels": ["$learning_type"], "limit": 20 }
+       ```
+    2. 调用 MCP `memory_add` 将生成的简报正文（结构见 Phase 5）写入记忆：
+       ```json
+       {
+         "content": "学习简报汇总内容...",
+         "title": "$learning_type 学习简报 YYYY-MM-DD",
+         "labels": ["$learning_type", "study", "summary"],
+         "importance": 0.8,
+         "source": "unified-learning",
+         "unit_type": "learning"
+       }
+       ```
+*   **裸 CLI 环境 (Codex 终端)**：
+    使用 CLI 命令读取和写入：
+    ```bash
+    # 读取 nmem 中的学习记录
+    nmem_records=$(nmem m search "学习记录" -l $learning_type -n 20 --json)
+    # 写入简报
+    nmem m add "简报正文..." -t "$learning_type 学习简报 YYYY-MM-DD" --unit-type learning -i 0.8 -l $learning_type,study,summary -s unified-learning
+    ```
 
 ### Phase 5: nmem 简报结构
 

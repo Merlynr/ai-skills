@@ -277,15 +277,16 @@ docs(flowcollect): update module agent after merge perf investigation
 
 ## Base 层 skill 加载（门面型 target）
 
-门面 profile（cursor、agents、opencode 等）未 sync 完整 GSD base 层时，**不要**假设 Skill/$mention 可用：
+门面 profile（cursor、agents、opencode、gemini 等）未 sync 完整 GSD base 层时，**不要**假设 Skill/$mention 可用：
 
 1. 解析 SSOT：`SKILLSHARE_SKILLS` 或 `~/.config/skillshare/skills`（Windows：`%APPDATA%/skillshare/skills`）
 2. Read `{SSOT}/base/{skill-name}/SKILL.md`
+   - **注意（Windows 路径规范）**：在 Node.js/Python 脚本内部进行路径拼接时统一使用正斜杠 `/`，在 PowerShell/CMD 命令行参数中如遇工具路径报错则需自动转换为反斜杠 `\`。
 3. 按文件内容执行；L1 workflow 仍从平台 runtime 读取（如 `~/.codex/get-shit-done/workflows/`）
 
 示例：`gsd-plan-phase` → Read `~/.config/skillshare/skills/base/gsd-plan-phase/SKILL.md`
 
-执行型 target（**codex**）通常已全量 sync，优先 Skill/$mention；门面 target（cursor、agents、opencode）缺失时再 Read SSOT base 路径。
+执行型 target（**codex**）通常已全量 sync，优先 Skill/$mention；门面 target（cursor、agents、opencode、gemini）缺失时再 Read SSOT base 路径。
 
 ## 交付格式（对用户）
 
