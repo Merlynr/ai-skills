@@ -87,7 +87,7 @@ Claude / Antigravity / OpenCode → 记忆读写必须 100% 优先调用 MCP Too
   ```
   **禁止**：`$text | nmem m add --stdin`（极易发生乱码）。
 
-## GSD 命令速查（只调用）
+## GSD 与工程标准速查（只调用）
 
 ```plaintext
 意图不明     → gsd-do
@@ -98,6 +98,9 @@ Claude / Antigravity / OpenCode → 记忆读写必须 100% 优先调用 MCP Too
 多 agent     → gsd-team
 验收         → gsd-verify-work
 审查         → gsd-code-review
+排障/调试    → 优先建立 Red-Capable 本地反馈环（测试/脚本），严禁空想，临时日志加 [DEBUG-XXXX]
+测试/实现    → 垂直切片（Tracer Bullet）：写一个测试 → 写最少实现 → 重构，禁止 RED 状态重构
+领域语言管理 → 维护 CONTEXT.md 术语表；在 docs/adr/ 中记录难以逆转的重要决策
 更新 GSD 后  → gsd-reapply-patches（仅当改过 GSD 安装文件时）
 ```
 

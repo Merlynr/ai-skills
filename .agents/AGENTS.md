@@ -20,6 +20,15 @@ To ensure high-quality and reliable contributions, adhere strictly to the follow
 *   **Independent Review & Testing**:
     *   Do not let the implementing agent perform its own testing and code review. Assign testing and review tasks to independent agent instances (e.g. using `research` or a separate `self` subagent) to avoid self-verification bias.
     *   Prioritize verification of: memory leaks, lock contention, NUMA/cache optimization, and performance regression in performance-critical paths (e.g., DPI flow management, packet dispatch, XML reloads).
+*   **Structured Bug Diagnosis (排障反馈闭环)**:
+    *   For any hard bugs or performance regressions, the agent **must** build a tight, deterministic, fast, and **red-capable** feedback loop (e.g. failing unit/integration test, mock throwaway harness, replay script, or curl) **before** reading large codebases to construct theories.
+    *   Do not hypothesize or test fixes without a runnable command that goes red on this specific bug and green once fixed.
+*   **Ubiquitous Language & Context Glossary (统一领域语言与 ADR)**:
+    *   Maintain a single source of truth for terminology in `CONTEXT.md` (no implementation details, glossary only). Match variable, function, and file naming consistently to the glossary. Propose precise terms for vague vocabulary.
+    *   Create Architecture Decision Records (ADRs) under `docs/adr/` sparingly, only for decisions that are hard to reverse, surprising without context, or result from real trade-offs.
+*   **TDD Vertical Slicing (测试驱动垂直切片)**:
+    *   Emphasize integration-style testing through public APIs/interfaces rather than mocking internal implementation details.
+    *   Follow a vertical-slice approach (one test $\rightarrow$ minimal green implementation $\rightarrow$ refactor $\rightarrow$ repeat) instead of writing all tests first in bulk. Never refactor while in RED state.
 
 ## 2. Workspace Technical Architecture & CLI Usage
 
