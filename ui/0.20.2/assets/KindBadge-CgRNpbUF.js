@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-FFrd4RqC.js";var t=e(),n={agent:`text-blue bg-info-light`,skill:`text-pencil-light bg-muted`};function r({kind:e}){return(0,t.jsx)(`span`,{className:`ss-badge text-[10px] font-bold uppercase tracking-wider px-1.5 py-0 rounded-[var(--radius-sm)] shrink-0 ${n[e]}`,children:e})}export{r as t};

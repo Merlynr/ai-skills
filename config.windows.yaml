@@ -44,6 +44,14 @@ targets:
     skills:
       path: C:/Users/101202106068/.config/opencode/skills
       include: *facade_skills
+  claude:
+    skills:
+      path: ~/.claude/skills
+      include: *facade_skills
+  antigravity:
+    skills:
+      path: ~/.gemini/antigravity/skills
+      include: *facade_skills
 ignore:
   - '**/.DS_Store'
   - '**/.git/**'

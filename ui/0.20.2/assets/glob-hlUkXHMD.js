@@ -1,0 +1,1 @@
+function e(e){if(!/[*?]/.test(e)){let t=e.replace(/[.+^${}()|[\]\\]/g,`\\$&`);return new RegExp(t,`i`)}let t=e.replace(/[.+^${}()|[\]\\]/g,`\\$&`).replace(/\*/g,`.*`).replace(/\?/g,`.`);return RegExp(`^${t}$`,`i`)}export{e as t};

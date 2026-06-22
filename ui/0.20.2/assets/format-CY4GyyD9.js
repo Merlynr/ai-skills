@@ -1,0 +1,1 @@
+function e(e){if(e<1024)return`${e} B`;let t=e/1024;return t<1024?`${t.toFixed(1)} KB`:`${(t/1024).toFixed(1)} MB`}export{e as t};

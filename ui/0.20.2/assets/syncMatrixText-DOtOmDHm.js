@@ -1,0 +1,1 @@
+function e(e,t){return e.reasonCode?t(e.reasonCode,e.reasonParams,e.reason):e.reason}export{e as t};
