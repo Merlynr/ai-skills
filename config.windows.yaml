@@ -3,14 +3,14 @@
 #   .\setup-config.ps1
 # 若用户名不同，请将路径中的 101202106068 改为你的用户名。
 sources:
-  skills: C:/Users/101202106068/AppData/Roaming/skillshare/skills
-  agents: C:/Users/101202106068/AppData/Roaming/skillshare/agents
+  skills: ~/AppData/Roaming/skillshare/skills
+  agents: ~/AppData/Roaming/skillshare/agents
 mode: merge
 target_naming: standard
 targets:
   agents:
     skills:
-      path: C:/Users/101202106068/.agents/skills
+      path: ~/.agents/skills
       include: &facade_skills
         - "merlynr-dev-stack"
         - "merlynr-dev"
@@ -34,15 +34,15 @@ targets:
         - "grilling"
   codex:
     skills:
-      path: C:/Users/101202106068/.codex/skills
+      path: ~/.codex/skills
   cursor:
     skills:
-      path: C:/Users/101202106068/.cursor/skills
+      path: ~/.cursor/skills
       mode: copy
       include: *facade_skills
   opencode:
     skills:
-      path: C:/Users/101202106068/.config/opencode/skills
+      path: ~/.config/opencode/skills
       include: *facade_skills
   claude:
     skills:
@@ -50,7 +50,7 @@ targets:
       include: *facade_skills
   antigravity:
     skills:
-      path: ~/.gemini/antigravity/skills
+      path: ~/.gemini/config/skills
       include: *facade_skills
 ignore:
   - '**/.DS_Store'

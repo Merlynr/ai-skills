@@ -2,14 +2,14 @@
 # Linux 配置模板 — 复制为 config.yaml 后使用：
 #   cp config.linux.yaml config.yaml
 sources:
-  skills: /root/.config/skillshare/skills
-  agents: /root/.config/skillshare/agents
+  skills: ~/.config/skillshare/skills
+  agents: ~/.config/skillshare/agents
 mode: merge
 target_naming: standard
 targets:
   agents:
     skills:
-      path: /root/.agents/skills
+      path: ~/.agents/skills
       include: &facade_skills
         - "merlynr-dev-stack"
         - "merlynr-dev"
@@ -28,15 +28,23 @@ targets:
         - "generate-daily-plan"
   codex:
     skills:
-      path: /root/.codex/skills
+      path: ~/.codex/skills
   cursor:
     skills:
-      path: /root/.cursor/skills
+      path: ~/.cursor/skills
       mode: copy
       include: *facade_skills
   opencode:
     skills:
-      path: /root/.config/opencode/skills
+      path: ~/.config/opencode/skills
+      include: *facade_skills
+  claude:
+    skills:
+      path: ~/.claude/skills
+      include: *facade_skills
+  antigravity:
+    skills:
+      path: ~/.gemini/config/skills
       include: *facade_skills
 ignore:
   - '**/.DS_Store'
