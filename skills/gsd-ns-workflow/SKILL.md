@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-workflow
 description: "workflow | discuss plan execute verify phase progress"
 tags: [gsd-workflow, phase-progress, workflow-commands]

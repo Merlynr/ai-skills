@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: stock-trade-journal
 description: >-
   为天才交易员项目生成每日股票实操反思：Read 铁律与上篇日志后先输出评价基准；

@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-ideate
 description: "exploration capture | explore sketch spike spec capture"
 tags: [ideation, explore-capture, sketch-spike]

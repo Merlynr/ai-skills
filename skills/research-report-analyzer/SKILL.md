@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "research-report-analyzer"
 description: "Batch analyze PDF research reports in a directory — supports both text-based and scanned/image-based PDFs. Invoke when user asks to analyze research reports, extract investment insights from PDFs, or mentions 研报分析/批量研报/研报提取/分析研报."
 ---

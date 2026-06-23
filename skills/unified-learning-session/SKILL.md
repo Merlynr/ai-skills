@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: unified-learning-session
 description: 统一学习会话管理 - 支持任意学科（高软、C++、Rust、考研、公考等），自动创建 Obsidian vault，集成 nmem 统计和简报生成，支持对题知识点分类整理
 tags: [study, learning, 统一学习, 会话管理, 知识点]

@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-do"
 description: "Route freeform text to the right GSD command automatically"
 tags: [intent-routing, auto-dispatch, command-router]

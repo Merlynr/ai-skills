@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: generate-daily-plan
 description: 为当前 Obsidian 笔记库生成或更新“今日计划”Markdown 文件：从 00 Inbox、10 Daily、20 Projects 中收集未完成任务，结合用户输入整理当天计划；当用户要写今日计划、日计划、今日待办或计划 md 文件时使用。
 ---

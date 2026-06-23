@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: uzi-analysis-stack
 description: >-
   Merlynr 股票深度分析工作流栈 — 将 UZI-Skill 接入 skillshare：分级路由、证据优先、

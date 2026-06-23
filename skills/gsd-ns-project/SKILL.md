@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-project
 description: "project lifecycle | milestones audits summary"
 tags: [project-lifecycle, milestone-cycle]

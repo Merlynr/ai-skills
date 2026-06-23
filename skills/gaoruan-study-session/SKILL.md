@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gaoruan-study-session
 description: Runs a 高软/系统架构师 daily study session in the Obsidian vault—opens today's study record, logs wrong answers with screenshots, classifies error types, archives knowledge points with Obsidian bidirectional links, syncs plan status, and writes a UTF-8-safe Nowledge Mem (nmem) briefing on completion. Use when the user mentions 高软、系统架构师、软考刷题、错题整理、高软学习计划、nmem简报、或发高软题目截图/说今日高软完成。
 tags: [study, gaoruan, 高软, 系统架构师, soft-exam]

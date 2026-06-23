@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-review
 description: "quality gates | code review debug audit security eval ui"
 tags: [quality-gate, review-cluster]

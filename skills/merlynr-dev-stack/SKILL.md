@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: merlynr-dev-stack
 description: >-
   Merlynr 个人 AI 开发工作流栈（GSD + nmem + 证据优先路由）。在非琐碎编码/重构/新功能/研究任务开始时自动应用；

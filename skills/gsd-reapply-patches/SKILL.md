@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-reapply-patches"
 description: "Reapply local modifications after a GSD update"
 tags: [patch-restore, upgrade-recovery, local-customization]

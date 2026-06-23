@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-quick"
 description: "Execute a quick task with GSD guarantees (atomic commits, state tracking) but skip optional agents"
 tags: [quick-task, small-scope, guaranteed-execution]

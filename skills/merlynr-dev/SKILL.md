@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: merlynr-dev
 description: >-
   Merlynr 工程方法论层：接口先行、模块拆分、适度重复、多 Agent 独立性、分模块实现、系统验证、

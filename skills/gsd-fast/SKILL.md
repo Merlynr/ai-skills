@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-fast"
 description: "Execute a trivial task inline — no subagents, no planning overhead"
 tags: [fast-path, trivial-task, inline-execution]

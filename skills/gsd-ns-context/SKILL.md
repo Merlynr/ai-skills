@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-context
 description: "codebase intelligence | map graphify docs learnings"
 tags: [codebase-intelligence, context-map, 代码库]

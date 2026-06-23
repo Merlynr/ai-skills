@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: gsd-ns-manage
 description: "config workspace | workstreams thread update ship inbox"
 tags: [workspace-admin, skillshare-manage, inbox-manage]

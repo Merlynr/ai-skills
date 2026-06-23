@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-team"
 description: "根据任务描述生成 GSD 团队配置，自动匹配相关 skills 并在 OpenCode 中执行"
 tags: [team, orchestration, workflow, collaboration]

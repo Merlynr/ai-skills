@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: skillshare
 description: |
   Manages and syncs AI CLI skills and agents across 50+ tools from a single source.

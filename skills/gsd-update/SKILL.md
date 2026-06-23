@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: "gsd-update"
 description: "Update GSD to latest version with changelog display"
 tags: [gsd-update, upgrade, maintenance, changelog]
