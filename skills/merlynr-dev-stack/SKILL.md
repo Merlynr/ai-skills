@@ -68,6 +68,25 @@ M4   验证与沉淀（verify-work + merlynr-dev 系统清单叠加 + nmem）
 M4.5 模块 agent 写回（M/L，见下文）
 ```
 
+**流程播报（L/M 级必须）：** 进入每个阶段时，向用户输出一行状态，格式：
+
+```
+▸ M{n} {阶段名} — {本阶段要做的事}
+```
+
+示例：
+```
+▸ M0 需求澄清 — grill-lite ≤12 轮，产出 Grill 共识
+▸ M1 证据收集 — 本地探库 + 外部检索，确认影响范围
+▸ M2 GSD 规划 — 模块拆分 → discuss/spec/plan，产出 PLAN.md
+▸ M2.5 接口冻结 — interface-first 锁定 public API 契约
+▸ M3 执行 — execute-phase 按 plan 实施
+▸ M4 验证与沉淀 — verify-work + 交付检查 + nmem
+▸ M4.5 模块写回 — 结论沉淀到模块 AGENTS.md
+```
+
+跳过的阶段输出 `▸ M{n} {阶段名} — 跳过（{原因}）`。S 级不播报。
+
 下文仍用 Phase 0–4.5 指同一序列；与 `gsd-team` Phase 0 Cymbal Brief 并存时以 **Merlynr M*** 为准理解上下文。
 
 **与 gsd-team 的分工：**

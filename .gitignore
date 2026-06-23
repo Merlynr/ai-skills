@@ -13,3 +13,12 @@ skills/**/nmem-briefing-*.md
 # Python / GSD 升级临时备份（upgrade-gsd-stack.sh 产生，勿提交）
 script/__pycache__/
 skills/base.backup.*/
+
+# metadata 脚本产生的备份文件
+*.bak.[0-9]*
+
+# 运行日志
+*.log
+
+# opencode 会话状态
+.planning/opencode/

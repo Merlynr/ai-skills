@@ -1,22 +1,14 @@
 ---
-name: "gsd-autonomous"
-description: "Run all remaining phases autonomously — discuss→plan→execute per phase"
-tags: [autonomous, batch-execution, multi-phase]
-triggers:
-- 自动执行
-- 自主执行
-- autonomous
-- 批量执行
-tool_chain: [gsd-autonomous]
-
+name: "gsd-mempalace-capture"
+description: "File a phase artifact into MemPalace; mirror decision facts into its temporal KG"
 metadata:
-  short-description: "Run all remaining phases autonomously — discuss→plan→execute per phase"
+  short-description: "File a phase artifact into MemPalace; mirror decision facts into its temporal KG"
 ---
 
 <codex_skill_adapter>
 ## A. Skill Invocation
-- This skill is invoked by mentioning `$gsd-autonomous`.
-- Treat all user text after `$gsd-autonomous` as `{{GSD_ARGS}}`.
+- This skill is invoked by mentioning `$gsd-mempalace-capture`.
+- Treat all user text after `$gsd-mempalace-capture` as `{{GSD_ARGS}}`.
 - If no arguments are present, treat `{{GSD_ARGS}}` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
@@ -102,39 +94,64 @@ Result parsing:
 - `close_agent(id)` after collecting results from each agent
 </codex_skill_adapter>
 
-<objective>
-Execute all remaining milestone phases autonomously. For each phase: discuss → plan → execute. Pauses only for user decisions (grey area acceptance, blockers, validation requests).
+**STOP -- DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by the command system. Using the Read tool on this file wastes tokens. Begin executing Step 0 immediately.**
 
-Uses ROADMAP.md phase discovery and Skill() flat invocations for each phase command. After all phases complete: milestone audit → complete → cleanup.
+## Step 0 -- Banner
 
-**Creates/Updates:**
-- `.planning/STATE.md` — updated after each phase
-- `.planning/ROADMAP.md` — progress updated after each phase
-- Phase artifacts — CONTEXT.md, PLANs, SUMMARYs per phase
+**Before ANY tool calls**, display this banner:
 
-**After:** Milestone is complete and cleaned up.
-</objective>
+```
+GSD > MEMPALACE CAPTURE
+```
 
-<execution_context>
-@$HOME/.codex/gsd-core/workflows/autonomous.md
-@$HOME/.codex/gsd-core/references/ui-brand.md
-</execution_context>
+Then proceed to Step 1.
 
-<context>
-Optional flags:
-- `--from N` — start from phase N instead of the first incomplete phase.
-- `--to N` — stop after phase N completes (halt instead of advancing to next phase).
-- `--only N` — execute only phase N (single-phase mode).
-- `--interactive` — run discuss inline with questions (not auto-answered), then dispatch plan→execute as background agents. Keeps the main context lean while preserving user input on decisions.
-- `--converge` — run each phase's planning step through `gsd-plan-review-convergence` instead of plain `gsd-plan-phase`. Requires `workflow.plan_review_convergence=true`.
-- `--cross-ai` — compatibility alias for `--converge`.
+## Step 1 -- Config Gate
 
-When `--converge` or `--cross-ai` is set, reviewer selector flags supported by `gsd-plan-review-convergence` may be passed through: `--codex`, `--gemini`, `--claude`, `--opencode`, `--ollama`, `--lm-studio`, `--llama-cpp`, `--all`, and `--max-cycles N`.
+Check whether the MemPalace capability is enabled by reading `.planning/config.json` directly with the Read tool.
 
-Project context, phase list, and state are resolved inside the workflow using init commands (`node "$HOME/.codex/gsd-core/bin/gsd-tools.cjs" query init.milestone-op`, `node "$HOME/.codex/gsd-core/bin/gsd-tools.cjs" query roadmap.analyze`). No upfront context loading needed.
-</context>
+1. Read `.planning/config.json` with the Read tool.
+2. If the file does not exist, or `config.mempalace` is absent, or `config.mempalace.enabled !== true`, or `config.mempalace.capture_artifacts !== true`: display the disabled message and **STOP**.
+3. Otherwise proceed to Step 2.
 
-<process>
-Execute end-to-end.
-Preserve all workflow gates (phase discovery, per-phase execution, blocker handling, progress display).
-</process>
+**Disabled message:**
+
+```
+GSD > MEMPALACE CAPTURE
+
+MemPalace capture is disabled (mempalace.enabled / mempalace.capture_artifacts).
+Nothing was filed; the loop proceeds normally.
+```
+
+This step is `onError: skip` at `discuss:post` / `plan:post` / `verify:post` -- capture never fails a phase.
+
+## Step 2 -- Resolve target
+
+1. **Artifact.** Take the artifact from `{{GSD_ARGS}}`. If absent, infer from the loop point: `discuss:post` → `CONTEXT.md`, `plan:post` → `PLAN.md`, `verify:post` → `SUMMARY.md`.
+2. **Room.** Map artifact → room:
+   - `CONTEXT.md` → `decisions`
+   - `PLAN.md` → `planning`
+   - `SUMMARY.md` → `milestones`
+   (Confirmed problem→fix pairs go to `problems` — see the `capture-problems` fragment used at `execute:wave:post`.)
+3. **Wing.** `config.mempalace.wing` if non-empty, else `config.project_code`, else the repo directory name.
+4. **Mode / transport.** Read `config.mempalace.memory_mode`. Prefer MCP (`mempalace_*`) when your MemPalace MCP server is registered and your runtime permits those tools; otherwise use the `mempalace` CLI (covered by this skill's `Bash` allow-tool), as in `mempalace-recall`.
+
+## Step 3 -- File verbatim (idempotent)
+
+On any error or timeout, stop and let the phase continue -- capture is best-effort.
+
+1. **Dedup first.** Interactive: `mempalace_check_duplicate` on the artifact's deterministic drawer id. Headless: rely on `mempalace mine`'s content-hash idempotency.
+2. **Add the drawer (verbatim).** File the exact artifact text into `room: <room>` of `wing: <wing>` with provenance (`source_file`, phase id). Interactive: `mempalace_add_drawer`. Headless: `mempalace mine <path> --wing <wing> --room <room>`.
+3. **Mirror KG facts** when `config.mempalace.mirror_kg` is true: extract decision/delivery facts and `mempalace_kg_add` them with `valid_from` = the phase date (e.g. `(<project>, decided, <decision>)` from CONTEXT; `(<phase>, delivered, <capability>)` from SUMMARY). Only `augment` is currently wired, so these are an *additive* mirror of `.planning/graphs/`. (`kg_backend`/`replace` are forward-declared and behave as `augment` today.)
+4. Re-running a phase MUST NOT create duplicate drawers (deterministic ids + `check_duplicate`).
+
+## Step 4 -- Report
+
+Print a one-line summary: `Filed <artifact> → <wing>/<room> (<n> KG facts)` or `MemPalace unavailable — capture skipped`.
+
+## Anti-Patterns
+
+1. DO NOT let any MemPalace error fail the step -- capture is `onError: skip`.
+2. DO NOT write lossy summaries -- store the verbatim artifact text (AAAK compression is a separate, optional index).
+3. DO NOT prune or delete drawers here -- pruning (`sync --apply`) is the curator agent's job at `ship:post`, wing-scoped only.
+4. DO NOT skip the config gate or the dedup check.
