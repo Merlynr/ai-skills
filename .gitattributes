@@ -1,0 +1,3 @@
+# Ensure shell scripts always use Unix line endings (LF) on checkout to prevent shell errors on Linux
+*.sh text eol=lf
+deploy.sh text eol=lf
